@@ -3,7 +3,10 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import os
-from utils import call_prediction_api, get_history, get_stats, get_model_comparison
+from utils import (
+    call_prediction_api, get_history, get_stats, 
+    get_model_comparison, get_ml_maturity_report
+)
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
@@ -603,6 +606,66 @@ elif page == "🔬 Model Comparison":
         random algorithm. We test multiple approaches (Linear, Ensemble, Probabilistic) 
         and choose the one that provides the highest reliability for farmers.
         """)
+        
+        st.markdown("---")
+        st.header("🔬 Advanced Model Insights (ML Maturity)")
+        
+        with st.spinner("⌛ Loading scientific maturity report..."):
+            maturity_res = get_ml_maturity_report(API_BASE_URL)
+            
+            if maturity_res and maturity_res.get('status') == 'success':
+                report = maturity_res['data']
+                
+                # 1. Overfitting Analysis
+                st.subheader("⚖️ Training Stability (Overfitting Check)")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Train Accuracy", f"{report['cv_metrics']['train_accuracy']*100:.2f}%")
+                with col2:
+                    st.metric("Test Accuracy", f"{report['cv_metrics']['test_accuracy']*100:.2f}%")
+                with col3:
+                    gap = (report['cv_metrics']['train_accuracy'] - report['cv_metrics']['test_accuracy']) * 100
+                    st.metric("Generalization Gap", f"{gap:.2f}%", delta=f"{gap:.2f}%", delta_color="inverse")
+                
+                # 2. Confusion Matrix & Feature Importance
+                col_left, col_right = st.columns([1, 1])
+                
+                with col_left:
+                    st.subheader("🧩 Confusion Matrix")
+                    cm_data = report['confusion_matrix']
+                    fig_cm = px.imshow(
+                        cm_data['values'],
+                        x=cm_data['labels'],
+                        y=cm_data['labels'],
+                        labels=dict(x="Predicted Crop", y="Actual Crop", color="Count"),
+                        color_continuous_scale='RdBu_r',
+                        text_auto=True
+                    )
+                    fig_cm.update_layout(height=500)
+                    st.plotly_chart(fig_cm, use_container_width=True)
+                    st.caption("This heatmap shows exactly where the AI gets 'confused' between crops.")
+                
+                with col_right:
+                    st.subheader("💡 Feature Importance")
+                    fi_df = pd.DataFrame(report['feature_importance'])
+                    fig_fi = px.bar(
+                        fi_df,
+                        y='feature',
+                        x='importance',
+                        orientation='h',
+                        color='importance',
+                        color_continuous_scale='Tealgrn'
+                    )
+                    fig_fi.update_layout(height=500, yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig_fi, use_container_width=True)
+                    st.caption("How much weight the AI gives to each factor (NPK, Rainfall, etc.).")
+                
+                # 3. Best Hyperparameters
+                with st.expander("⚙️ View Optimized Hyperparameters"):
+                    st.json(report['best_params'])
+                    st.caption("These are the mathematically 'perfect' settings found for your Random Forest model.")
+            else:
+                st.warning("⚠️ High-level scientific report is currently being generated or unavailable.")
     else:
         st.error("❌ Could not load model comparison data.")
         st.info("Ensure the backend server is running and the dataset is available for training.")

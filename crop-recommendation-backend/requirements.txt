@@ -9,6 +9,8 @@ psycopg2-binary==2.9.9
 gunicorn==21.2.0
 xgboost==2.0.3
 shap==0.44.0
+matplotlib==3.8.2
+seaborn==0.13.0
 
 
 

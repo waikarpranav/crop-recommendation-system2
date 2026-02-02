@@ -80,3 +80,19 @@ def get_model_comparison(base_url):
     except Exception as e:
         st.error(f"Error fetching model comparison: {str(e)}")
         return None
+
+def get_ml_maturity_report(base_url):
+    """Fetch advanced ML maturity report from API"""
+    try:
+        response = requests.get(
+            f"{base_url}/api/v1/ml-maturity-report",
+            timeout=120  # Tuning can take time
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+    except Exception as e:
+        st.error(f"Error fetching maturity report: {str(e)}")
+        return None

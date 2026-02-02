@@ -299,6 +299,30 @@ def get_model_comparison():
             "message": str(e)
         }), 500
 
+@app.route('/api/v1/ml-maturity-report', methods=['GET'])
+def get_ml_maturity_report():
+    try:
+        report_path = os.path.join(os.path.dirname(__file__), 'ml_maturity_report.json')
+        if not os.path.exists(report_path):
+            # Run the upgrade if report doesn't exist
+            from evaluate_model import run_maturity_upgrade
+            results = run_maturity_upgrade()
+        else:
+            import json
+            with open(report_path, 'r') as f:
+                results = json.load(f)
+        
+        return jsonify({
+            "status": "success",
+            "data": results
+        })
+    except Exception as e:
+        logger.error(f"Error in ML maturity endpoint: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 # -------------------- RUN --------------------
 
 if __name__ == '__main__':
