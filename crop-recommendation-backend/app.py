@@ -34,56 +34,62 @@ app = Flask(__name__)
 CORS(app)
 
 # Load configuration based on environment
+from config import config as app_configs
 env = os.environ.get('FLASK_ENV', 'development')
-if env == 'production':
-    from config import ProductionConfig
-    app.config.from_object(ProductionConfig)
-else:
-    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = (
-        'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'predictions.db')
-    )
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+logger.info(f"🚀 Starting App in [{env}] mode")
+
+# Standardize config loading
+selected_config = app_configs.get(env, app_configs['default'])
+app.config.from_object(selected_config)
+
+# Ensure required directories exist
+os.makedirs(os.path.join(app.config.get('BASE_DIR'), 'instance'), exist_ok=True)
+os.makedirs(os.path.join(app.config.get('BASE_DIR'), 'ml_models'), exist_ok=True)
 
 db.init_app(app)
+with app.app_context():
+    db.create_all()
 
-# -------------------- LOAD MODEL --------------------
-
-# -------------------- LOAD MODEL --------------------
+# -------------------- LOAD MODEL (With Emergency Fallback) --------------------
 
 model, scaler = None, None
+model_error = None
+
 try:
-    # Use paths from config
     m_path = app.config.get('MODEL_PATH')
     s_path = app.config.get('SCALER_PATH')
     
-    # Fallback to auto-train if files are missing (Production Resilience)
+    logger.info(f"📦 Model Path: {m_path}")
+    logger.info(f"📦 Scaler Path: {s_path}")
+
+    # Check existence
     if not (os.path.exists(m_path) and os.path.exists(s_path)):
-        logger.warning("⚠️ Model artifacts missing. Attempting emergency training...")
-        from train_model import train_and_save_model
-        train_and_save_model()
-        
+        logger.warning("🚨 Model files MISSING from disk. Attempting auto-train fallback...")
+        try:
+            from train_model import train_and_save_model
+            train_and_save_model()
+        except Exception as train_err:
+            logger.error(f"❌ Emergency training failed: {train_err}")
+            model_error = f"Emergency training failed: {str(train_err)}"
+
+    # Load artifacts
     model, scaler = load_model(m_path, s_path)
-    if model and scaler:
-        logger.info("✓ Model and scaler loaded successfully")
-    else:
-        logger.error("✗ Model or scaler failed to load (returned None)")
+    logger.info("✅ Model and scaler loaded successfully")
+
 except Exception as e:
-    logger.error(f"✗ Critical error loading model/scaler: {e}")
+    logger.error(f"❌ Critical startup error: {str(e)}")
+    model_error = str(e)
     model, scaler = None, None
 
-# Initialize Explainer (Separate block to prevent cascading failure)
+# Initialize Explainer
 explainer = None
 if model is not None:
     try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        data_path = os.path.join(base_dir, 'Data', 'Crop_recommendation.csv')
-        from explainability import CropExplainer
+        data_path = os.path.join(app.config.get('BASE_DIR'), 'Data', 'Crop_recommendation.csv')
         explainer = CropExplainer(model, data_path)
-        print("✓ Explainability engine (SHAP) initialized")
+        logger.info("✅ Explainability engine initialized")
     except Exception as e:
-        print(f"⚠️ Warning: Explainability engine failed to initialize: {e}")
-        # Application continues without explainer
+        logger.warning(f"⚠️ Explainer failed: {e}")
 
 # -------------------- INIT DB --------------------
 
@@ -125,11 +131,17 @@ def predict():
     request_id = str(uuid.uuid4())
     try:
         if model is None or scaler is None:
-            logger.error(f"[{request_id}] Model not loaded")
+            logger.error(f"[{request_id}] Model is None. Startup Error: {model_error}")
             return jsonify({
                 "status": "error",
                 "request_id": request_id,
-                "error": "Model not loaded. Please ensure model files exist in ml_models folder."
+                "error": "ML Integrity Check Failed",
+                "details": f"Model or scaler is not initialized. Technical error: {model_error}",
+                "paths": {
+                    "model": app.config.get('MODEL_PATH'),
+                    "scaler": app.config.get('SCALER_PATH')
+                },
+                "timestamp": datetime.now().isoformat()
             }), 500
         
         data = request.get_json()
