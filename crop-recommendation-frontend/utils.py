@@ -63,3 +63,20 @@ def get_stats(base_url):
     except Exception as e:
         st.error(f"Error fetching stats: {str(e)}")
         return None
+
+def get_model_comparison(base_url):
+    """Fetch model comparison results from API"""
+    try:
+        response = requests.get(
+            f"{base_url}/api/v1/model-comparison",
+            timeout=30  # Longer timeout for training if needed
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+    
+    except Exception as e:
+        st.error(f"Error fetching model comparison: {str(e)}")
+        return None

@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import os
-from utils import call_prediction_api, get_history, get_stats
+from utils import call_prediction_api, get_history, get_stats, get_model_comparison
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
@@ -77,7 +77,7 @@ with st.sidebar:
     
     page = st.radio(
         "Select Page",
-        ["🏠 Make Prediction", "📊 History & Analytics", "ℹ️ About"]
+        ["🏠 Make Prediction", "📊 History & Analytics", "🔬 Model Comparison", "ℹ️ About"]
     )
     
     st.markdown("---")
@@ -472,7 +472,91 @@ elif page == "📊 History & Analytics":
             with st.expander("🔍 Debug Info"):
                 st.json(history_data)
 
-# ==================== PAGE 3: ABOUT ====================
+# ==================== PAGE 3: MODEL COMPARISON ====================
+elif page == "🔬 Model Comparison":
+    st.header("Model Performance Comparison")
+    st.markdown("""
+    This page shows a systematic comparison of different machine learning algorithms 
+    evaluated on the crop recommendation dataset using 5-fold cross-validation.
+    """)
+    
+    with st.spinner("📊 Fetching comparison results..."):
+        comparison_data = get_model_comparison(API_BASE_URL)
+        
+    if comparison_data and comparison_data.get('status') == 'success':
+        results = comparison_data.get('data', {})
+        
+        # Prepare data for Plotly
+        model_names = []
+        accuracies = []
+        stds = []
+        
+        for name, metrics in results.items():
+            if 'error' not in metrics:
+                model_names.append(name)
+                accuracies.append(metrics['mean_accuracy'] * 100)
+                stds.append(metrics['std_accuracy'] * 100)
+        
+        df_comparison = pd.DataFrame({
+            'Model': model_names,
+            'Accuracy (%)': accuracies,
+            'Std Dev (%)': stds
+        }).sort_values('Accuracy (%)', ascending=False)
+        
+        # Display Best Model Metric
+        best_model = df_comparison.iloc[0]
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("🏆 Best Model", best_model['Model'])
+        with col2:
+            st.metric("🎯 Top Accuracy", f"{best_model['Accuracy (%)']:.2f}%")
+        with col3:
+            st.metric("📉 Std Deviation", f"{best_model['Std Dev (%)']:.2f}%")
+            
+        st.markdown("---")
+        
+        # Visual Comparison
+        col_left, col_right = st.columns([2, 1])
+        
+        with col_left:
+            st.subheader("🚀 Accuracy by Algorithm")
+            fig = px.bar(
+                df_comparison,
+                x='Model',
+                y='Accuracy (%)',
+                error_y='Std Dev (%)',
+                color='Accuracy (%)',
+                color_continuous_scale='viridis',
+                text=df_comparison['Accuracy (%)'].apply(lambda x: f'{x:.2f}%')
+            )
+            fig.update_layout(height=500, showlegend=False)
+            fig.update_traces(textposition='outside')
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col_right:
+            st.subheader("📝 Detailed Metrics")
+            st.dataframe(
+                df_comparison.style.background_gradient(cmap='Greens', subset=['Accuracy (%)']),
+                use_container_width=True,
+                hide_index=True
+            )
+            
+        st.markdown("---")
+        
+        # Detailed stats expander
+        with st.expander("🔍 View Raw Analysis Data"):
+            st.json(results)
+            
+        st.info("""
+        **Why this matters:** Systematic comparison shows that we don't just pick a 
+        random algorithm. We test multiple approaches (Linear, Ensemble, Probabilistic) 
+        and choose the one that provides the highest reliability for farmers.
+        """)
+    else:
+        st.error("❌ Could not load model comparison data.")
+        st.info("Ensure the backend server is running and the dataset is available for training.")
+
+# ==================== PAGE 4: ABOUT ====================
 elif page == "ℹ️ About":
     st.header("About This System")
     

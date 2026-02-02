@@ -181,6 +181,39 @@ def stats():
             "error": str(e)
         }), 500
 
+
+@app.route('/api/v1/model-comparison', methods=['GET'])
+def get_model_comparison():
+    try:
+        results_path = os.path.join(os.path.dirname(__file__), 'model_comparison_results.json')
+        if not os.path.exists(results_path):
+            # If results don't exist, try to run the comparison
+            from model_comparison import compare_models
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            data_path = os.path.join(base_dir, 'Data', 'Crop_recommendation.csv')
+            if os.path.exists(data_path):
+                results = compare_models(data_path)
+            else:
+                return jsonify({
+                    "status": "error",
+                    "message": "Model comparison results not found and dataset unavailable for training."
+                }), 404
+        else:
+            import json
+            with open(results_path, 'r') as f:
+                results = json.load(f)
+        
+        return jsonify({
+            "status": "success",
+            "data": results
+        })
+    except Exception as e:
+        print(f"Error in model comparison endpoint: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 # -------------------- RUN --------------------
 
 if __name__ == '__main__':
