@@ -1,4 +1,3 @@
-import shap
 import numpy as np
 import pandas as pd
 import os
@@ -6,6 +5,14 @@ from feature_engineering import engineer_features
 
 class CropExplainer:
     def __init__(self, model, csv_path=None):
+        # Lazy import shap to save memory on startup
+        try:
+            import shap
+            self.shap = shap
+        except ImportError:
+            self.shap = None
+            print("⚠️ SHAP library not found. Explainability disabled.")
+            
         self.model = model
         
         # Load sample data for explainer if path provided
@@ -18,9 +25,13 @@ class CropExplainer:
         else:
             self.X_sample = None
 
+        if self.shap is None:
+            self.explainer = None
+            self.classes = list(model.classes_)
+            return
+
         # Initialize TreeExplainer for Random Forest
-        # Data parameter is recommended for better estimation
-        self.explainer = shap.TreeExplainer(model, self.X_sample)
+        self.explainer = self.shap.TreeExplainer(model, self.X_sample)
         
         # Store class names from model
         self.classes = list(model.classes_)
@@ -30,8 +41,10 @@ class CropExplainer:
         Return top 3 reasons for the crop recommendation.
         input_data: 2D numpy array [1, num_features]
         """
+        if self.explainer is None:
+            return ["Favorable agricultural conditions detected"]
+
         # SHAP values for all classes
-        # For multi-class, shape is [num_classes, num_samples, num_features]
         shap_values = self.explainer.shap_values(input_data)
         
         # Get predicted class index
