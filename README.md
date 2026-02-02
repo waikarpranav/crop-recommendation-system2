@@ -65,6 +65,31 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## 🛠️ Developer Toolbox (Admin Commands)
+
+Use these commands to maintain, retrain, or evaluate the system locally.
+
+### 🧠 Model Management
+| Task | Command | Description |
+| :--- | :--- | :--- |
+| **Retrain Model** | `python train_model.py` | Rebuilds the model and scaler from scratch. |
+| **Deep Evaluation** | `python evaluate_model.py` | Generates the advanced maturity report & metrics. |
+| **Algorithm Test** | `python model_comparison.py` | Compares RF, XGBoost, SVM, etc. |
+
+### 🔍 System Maintenance
+| Task | Command | Description |
+| :--- | :--- | :--- |
+| **Check Env** | `pip freeze` | Verify local library versions (NumPy, Scikit-learn). |
+| **Reset DB** | `Remove-Item instance/predictions.db` | (Windows) Deletes local history for a fresh start. |
+| **Git Push** | `git add . ; git commit -m "Update" ; git push` | Deploy local changes to live server. |
+
+### 🏥 API Verification
+| Endpoint | Method | Purpose |
+| :--- | :--- | :--- |
+| `/api/v1/health` | `GET` | Verify if model/scaler loaded correctly. |
+| `/api/v1/predict` | `POST` | Test prediction with JSON payload. |
+
+
 ## 📈 Model Insights
 The system currently utilizes a **Tuned Random Forest** model achieving over **99% test accuracy**, validated by advanced confusion matrix analysis and cross-validation reports.
 
