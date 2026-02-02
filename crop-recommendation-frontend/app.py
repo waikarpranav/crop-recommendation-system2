@@ -688,12 +688,11 @@ elif page == "ℹ️ About":
     
     #### 🎯 Key Features
     - **Real-time Predictions**: Get instant crop recommendations
-    - **Interactive Sliders**: Easy-to-use interface with visual controls
-    - **Quick Presets**: Pre-configured settings for common crops
-    - **RESTful Architecture**: Clean separation between frontend and backend
-    - **Persistent Storage**: All predictions saved to database
-    - **Analytics Dashboard**: Track prediction history and trends
-    - **Production-Ready**: Deployed on cloud with professional DevOps practices
+    - **Trust & Explainability Dashboard**: SHAP-powered reasoning for every prediction.
+    - **Confidence Scoring**: Progress bars and suitability rankings (High/Moderate/Low).
+    - **Model Comparison Pipeline**: Comparative analysis of multiple ML algorithms.
+    - **Scientific Maturity Reports**: Confusion matrices and feature importance tracking.
+    - **Production-Ready Signals**: API versioning, health checks, and request ID tracking.
     
     #### 🛠️ Technology Stack
     - **Frontend**: Streamlit (Python)
@@ -712,11 +711,10 @@ elif page == "ℹ️ About":
     7. **Rainfall**: 20-300mm
     
     #### 🎓 Educational Value
-    - Full-stack architecture understanding
-    - REST API design and implementation
-    - Database integration with ORM
-    - ML model deployment best practices
-    - Production-ready code standards
+    - **Tiered Development**: Project evolved through 7 industry-standard upgrades.
+    - **Explainable AI (XAI)**: Moving beyond "Black Box" predictions with SHAP.
+    - **DevOps Excellence**: Implementing request tracking and centralized logging.
+    - **Data Rigor**: Domain-specific feature engineering and model tuning.
     
     #### 📝 Sample Crops
     The model can recommend various crops including:

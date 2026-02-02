@@ -12,8 +12,13 @@ class Config:
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     
     # ML Model paths
-    MODEL_PATH = os.path.join(BASE_DIR, 'ml_models', 'crop_recommendation_model.pkl')
-    SCALER_PATH = os.path.join(BASE_DIR, 'ml_models', 'scaler.pkl')
+    MODEL_PATH = os.environ.get('MODEL_PATH', os.path.join(BASE_DIR, 'ml_models', 'crop_recommendation_model.pkl'))
+    SCALER_PATH = os.environ.get('SCALER_PATH', os.path.join(BASE_DIR, 'ml_models', 'scaler.pkl'))
+
+    # Signals for Production-Readiness
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    MAX_REQUESTS_PER_MINUTE = int(os.environ.get('RATE_LIMIT', 100))
+    ENABLE_EXPLAINABILITY = os.environ.get('ENABLE_SHAP', 'True').lower() == 'true'
 
 class DevelopmentConfig(Config):
     """Development configuration"""

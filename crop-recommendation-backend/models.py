@@ -22,6 +22,8 @@ class Prediction(db.Model):
     predicted_crop = db.Column(db.String(50), nullable=False)
     
     # Metadata
+    request_id = db.Column(db.String(36), nullable=True)
+    confidence = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     
     def to_dict(self):
@@ -36,6 +38,8 @@ class Prediction(db.Model):
             'ph': self.ph,
             'rainfall': self.rainfall,
             'predicted_crop': self.predicted_crop,
+            'confidence': self.confidence,
+            'request_id': self.request_id,
             'created_at': self.created_at.isoformat()
         }
     

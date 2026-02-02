@@ -11,10 +11,22 @@ from datetime import datetime
 # -------------------- LOGGING SETUP --------------------
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=os.environ.get('LOG_LEVEL', 'INFO'),
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# -------------------- HELPERS --------------------
+
+def sanitize_input(value, field_name):
+    """Prevent injection attacks and ensure strict data types"""
+    try:
+        # Agricultural inputs must be numeric
+        if isinstance(value, str):
+            return float(value.strip())
+        return float(value)
+    except (ValueError, TypeError):
+        return None
 
 # -------------------- APP SETUP --------------------
 
@@ -83,7 +95,19 @@ def home():
         }
     })
 
+@app.route("/api/v1/health", methods=["GET"])
+def health_check():
+    """System heartbeat with model status"""
+    return jsonify({
+        "status": "healthy",
+        "model_loaded": model is not None,
+        "scaler_loaded": scaler is not None,
+        "explainer_enabled": app.config.get('ENABLE_EXPLAINABILITY', True),
+        "timestamp": datetime.now().isoformat()
+    })
+
 @app.route("/predict", methods=["POST"])
+@app.route("/api/v1/predict", methods=["POST"])
 def predict():
     request_id = str(uuid.uuid4())
     try:
@@ -106,17 +130,27 @@ def predict():
         
         logger.info(f"[{request_id}] Input Received: {data}")
         
+        # Sanitize Inputs
+        sanitized_data = {}
+        for field in ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall']:
+            val = sanitize_input(data.get(field), field)
+            if val is not None:
+                sanitized_data[field] = val
+            else:
+                sanitized_data[field] = data.get(field) # validate_input will catch the type error
+
         # Robust Validation
-        errors = validate_input(data)
+        errors = validate_input(sanitized_data)
         if errors:
             logger.warning(f"[{request_id}] Validation Failed: {errors}")
             return jsonify({
                 "status": "error",
                 "request_id": request_id,
-                "errors": errors
+                "errors": errors,
+                "timestamp": datetime.now().isoformat()
             }), 400
             
-        X = prepare_input(data)
+        X = prepare_input(sanitized_data)
         print("Prepared input:", X)
         
         X_scaled = scaler.transform(X)
@@ -150,14 +184,16 @@ def predict():
         
         try:
             new_prediction = Prediction(
-                nitrogen=float(data['N']),
-                phosphorus=float(data['P']),
-                potassium=float(data['K']),
-                temperature=float(data['temperature']),
-                humidity=float(data['humidity']),
-                ph=float(data['ph']),
-                rainfall=float(data['rainfall']),
-                predicted_crop=predicted_crop
+                nitrogen=float(sanitized_data['N']),
+                phosphorus=float(sanitized_data['P']),
+                potassium=float(sanitized_data['K']),
+                temperature=float(sanitized_data['temperature']),
+                humidity=float(sanitized_data['humidity']),
+                ph=float(sanitized_data['ph']),
+                rainfall=float(sanitized_data['rainfall']),
+                predicted_crop=predicted_crop,
+                confidence=float(top_confidence),
+                request_id=request_id
             )
             db.session.add(new_prediction)
             db.session.commit()
@@ -200,11 +236,13 @@ def predict():
         return jsonify({
             "status": "error",
             "request_id": request_id,
-            "error": "An internal server error occurred. Please contact support with the request ID."
+            "error": "An internal server error occurred. Please contact support with the request ID.",
+            "timestamp": datetime.now().isoformat()
         }), 500
 
 
 @app.route('/history', methods=['GET'])
+@app.route('/api/v1/history', methods=['GET'])
 def history():
     try:
         limit = request.args.get('limit', 10, type=int)
@@ -241,6 +279,7 @@ def history():
 
 
 @app.route('/stats', methods=['GET'])
+@app.route('/api/v1/stats', methods=['GET'])
 def stats():
     try:
         from sqlalchemy import func
