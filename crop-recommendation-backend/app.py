@@ -100,7 +100,33 @@ with app.app_context():
     if env != 'production':
         os.makedirs(os.path.join(BASE_DIR, 'instance'), exist_ok=True)
     db.create_all()
-    print("✓ Database initialized")
+    
+    # --- Emergency Schema Migration (Add columns if missing) ---
+    try:
+        from sqlalchemy import text
+        # These are the new columns added in Upgrade 7
+        new_columns = [
+            ('request_id', 'VARCHAR(36)'),
+            ('confidence', 'FLOAT')
+        ]
+        
+        for col_name, col_type in new_columns:
+            try:
+                # Check if column exists
+                db.session.execute(text(f"SELECT {col_name} FROM predictions LIMIT 1"))
+            except Exception:
+                # If selection fails, column likely missing - attempt to add
+                db.session.rollback()
+                logger.warning(f"🔧 Schema Mismatch: Adding missing column [{col_name}] to [predictions] table")
+                db.session.execute(text(f"ALTER TABLE predictions ADD COLUMN {col_name} {col_type}"))
+                db.session.commit()
+                logger.info(f"✅ Successfully added column {col_name}")
+                
+    except Exception as e:
+        logger.error(f"⚠️ Auto-migration failed: {e}")
+        db.session.rollback()
+
+    logger.info("✓ Database initialized and verified")
 
 # -------------------- ROUTES --------------------
 
