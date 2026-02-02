@@ -28,16 +28,26 @@ db.init_app(app)
 
 try:
     model, scaler = load_model()
-    print("✓ Model and scaler loaded successfully")
-    
-    # Initialize Explainer
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base_dir, 'Data', 'Crop_recommendation.csv')
-    explainer = CropExplainer(model, data_path)
-    print("✓ Explainability engine (SHAP) initialized")
+    if model and scaler:
+        print("✓ Model and scaler loaded successfully")
+    else:
+        print("✗ Model or scaler failed to load (returned None)")
 except Exception as e:
-    print(f"✗ Error during startup: {e}")
-    model, scaler, explainer = None, None, None
+    print(f"✗ Critical error loading model/scaler: {e}")
+    model, scaler = None, None
+
+# Initialize Explainer (Separate block to prevent cascading failure)
+explainer = None
+if model is not None:
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        data_path = os.path.join(base_dir, 'Data', 'Crop_recommendation.csv')
+        from explainability import CropExplainer
+        explainer = CropExplainer(model, data_path)
+        print("✓ Explainability engine (SHAP) initialized")
+    except Exception as e:
+        print(f"⚠️ Warning: Explainability engine failed to initialize: {e}")
+        # Application continues without explainer
 
 # -------------------- INIT DB --------------------
 
@@ -103,18 +113,22 @@ def predict():
             print(f"Warning: Could not save to database: {db_error}")
             db.session.rollback()
         
-        # Generate Explanations
-        try:
-            feature_names = [
-                'N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall',
-                'NPK_ratio', 'nutrient_balance', 'temp_humidity_index', 
-                'ph_optimality', 'water_stress_index', 'growing_degree_days', 
-                'N_P_ratio', 'N_K_ratio'
-            ]
-            reasons = explainer.explain_prediction(X_scaled, feature_names)
-        except Exception as e:
-            print(f"Explainability Error: {e}")
-            reasons = ["Highly favorable conditions"]
+        # Generate Explanations (only if explainer is available)
+        reasons = []
+        if explainer:
+            try:
+                feature_names = [
+                    'N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall',
+                    'NPK_ratio', 'nutrient_balance', 'temp_humidity_index', 
+                    'ph_optimality', 'water_stress_index', 'growing_degree_days', 
+                    'N_P_ratio', 'N_K_ratio'
+                ]
+                reasons = explainer.explain_prediction(X_scaled, feature_names)
+            except Exception as e:
+                print(f"Explainability Error: {e}")
+                reasons = ["Highly favorable conditions"]
+        else:
+            reasons = ["Prediction based on historical data patterns"]
 
         return jsonify({
             "status": "success",
