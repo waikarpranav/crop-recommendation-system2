@@ -55,31 +55,34 @@ with app.app_context():
 model, scaler = None, None
 model_error = None
 
-try:
-    m_path = app.config.get('MODEL_PATH')
-    s_path = app.config.get('SCALER_PATH')
-    
-    logger.info(f"📦 Model Path: {m_path}")
-    logger.info(f"📦 Scaler Path: {s_path}")
-
-    # Check existence
-    if not (os.path.exists(m_path) and os.path.exists(s_path)):
-        logger.warning("🚨 Model files MISSING from disk. Attempting auto-train fallback...")
-        try:
+def initialize_model():
+    global model, scaler, model_error
+    try:
+        m_path = app.config.get('MODEL_PATH')
+        s_path = app.config.get('SCALER_PATH')
+        
+        # Check existence or force retrain if files are corrupted/incompatible
+        if not (os.path.exists(m_path) and os.path.exists(s_path)):
+            logger.warning("🚨 Model files MISSING. Training now...")
             from train_model import train_and_save_model
             train_and_save_model()
-        except Exception as train_err:
-            logger.error(f"❌ Emergency training failed: {train_err}")
-            model_error = f"Emergency training failed: {str(train_err)}"
 
-    # Load artifacts
-    model, scaler = load_model(m_path, s_path)
-    logger.info("✅ Model and scaler loaded successfully")
+        try:
+            model, scaler = load_model(m_path, s_path)
+            logger.info("✅ Model and scaler loaded successfully")
+        except (ModuleNotFoundError, AttributeError, pickle.UnpicklingError) as load_err:
+            logger.error(f"⚠️ Library mismatch detected ({load_err}). Forcing RE-TRAIN...")
+            from train_model import train_and_save_model
+            train_and_save_model()
+            model, scaler = load_model(m_path, s_path)
+            logger.info("✅ Model recovered with local training")
 
-except Exception as e:
-    logger.error(f"❌ Critical startup error: {str(e)}")
-    model_error = str(e)
-    model, scaler = None, None
+    except Exception as e:
+        logger.error(f"❌ Critical startup error: {str(e)}")
+        model_error = str(e)
+        model, scaler = None, None
+
+initialize_model()
 
 # Initialize Explainer
 explainer = None
