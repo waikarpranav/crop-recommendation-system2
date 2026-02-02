@@ -3,17 +3,26 @@ import numpy as np
 import os
 from feature_engineering import engineer_features
 
-def load_model():
-    """Load both model and scaler"""
+def load_model(model_path=None, scaler_path=None):
+    """Load both model and scaler with robust path handling"""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Load model
-    model_path = os.path.join(base_dir, 'ml_models', 'crop_recommendation_model.pkl')
+    if not model_path:
+        model_path = os.path.join(base_dir, 'ml_models', 'crop_recommendation_model.pkl')
+    if not scaler_path:
+        scaler_path = os.path.join(base_dir, 'ml_models', 'scaler.pkl')
+        
+    print(f"🔍 Loading model from: {model_path}")
+    print(f"🔍 Loading scaler from: {scaler_path}")
+    
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found at {model_path}")
+    if not os.path.exists(scaler_path):
+        raise FileNotFoundError(f"Scaler file not found at {scaler_path}")
+
+    # Load artifacts
     with open(model_path, "rb") as f:
         model = pickle.load(f)
-    
-    # Load scaler
-    scaler_path = os.path.join(base_dir, 'ml_models', 'scaler.pkl')
     with open(scaler_path, "rb") as f:
         scaler = pickle.load(f)
     

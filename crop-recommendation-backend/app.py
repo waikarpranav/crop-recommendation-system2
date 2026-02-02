@@ -49,14 +49,27 @@ db.init_app(app)
 
 # -------------------- LOAD MODEL --------------------
 
+# -------------------- LOAD MODEL --------------------
+
+model, scaler = None, None
 try:
-    model, scaler = load_model()
+    # Use paths from config
+    m_path = app.config.get('MODEL_PATH')
+    s_path = app.config.get('SCALER_PATH')
+    
+    # Fallback to auto-train if files are missing (Production Resilience)
+    if not (os.path.exists(m_path) and os.path.exists(s_path)):
+        logger.warning("⚠️ Model artifacts missing. Attempting emergency training...")
+        from train_model import train_and_save_model
+        train_and_save_model()
+        
+    model, scaler = load_model(m_path, s_path)
     if model and scaler:
-        print("✓ Model and scaler loaded successfully")
+        logger.info("✓ Model and scaler loaded successfully")
     else:
-        print("✗ Model or scaler failed to load (returned None)")
+        logger.error("✗ Model or scaler failed to load (returned None)")
 except Exception as e:
-    print(f"✗ Critical error loading model/scaler: {e}")
+    logger.error(f"✗ Critical error loading model/scaler: {e}")
     model, scaler = None, None
 
 # Initialize Explainer (Separate block to prevent cascading failure)

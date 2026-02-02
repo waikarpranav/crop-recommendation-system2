@@ -1,75 +1,75 @@
 {
     "best_params": {
-        "n_estimators": 100,
-        "min_samples_split": 2,
-        "min_samples_leaf": 2,
-        "max_depth": 10
+        "n_estimators": 50,
+        "min_samples_split": 5,
+        "min_samples_leaf": 1,
+        "max_depth": 20
     },
     "cv_metrics": {
-        "train_accuracy": 0.9964772727272727,
-        "test_accuracy": 0.990909090909091,
-        "f1_score": 0.9908226776505613
+        "train_accuracy": 1.0,
+        "test_accuracy": 0.9936363636363638,
+        "f1_score": 0.9936120199739058
     },
     "feature_importance": [
         {
             "feature": "rainfall",
-            "importance": 0.14385081466146843
+            "importance": 0.14933232123526227
         },
         {
             "feature": "humidity",
-            "importance": 0.13414182174310477
+            "importance": 0.12687564465532325
         },
         {
             "feature": "K",
-            "importance": 0.11249396950258245
+            "importance": 0.10869939833640489
         },
         {
             "feature": "water_stress_index",
-            "importance": 0.08865832937423863
-        },
-        {
-            "feature": "P",
-            "importance": 0.083044815307317
-        },
-        {
-            "feature": "NPK_ratio",
-            "importance": 0.07781354211855022
+            "importance": 0.08580450740063615
         },
         {
             "feature": "temp_humidity_index",
-            "importance": 0.07007900964607555
+            "importance": 0.0768288858960957
         },
         {
-            "feature": "N",
-            "importance": 0.05282061589615679
+            "feature": "P",
+            "importance": 0.07523948409110665
+        },
+        {
+            "feature": "NPK_ratio",
+            "importance": 0.07363247916625802
         },
         {
             "feature": "nutrient_balance",
-            "importance": 0.05195848197661736
+            "importance": 0.056519073915315354
+        },
+        {
+            "feature": "N",
+            "importance": 0.05466944837484215
         },
         {
             "feature": "N_K_ratio",
-            "importance": 0.050015650741438475
+            "importance": 0.04736928482385849
         },
         {
             "feature": "N_P_ratio",
-            "importance": 0.03435794706417478
+            "importance": 0.039104357124775044
         },
         {
             "feature": "temperature",
-            "importance": 0.03164463268942752
-        },
-        {
-            "feature": "growing_degree_days",
-            "importance": 0.030821506918127933
+            "importance": 0.03338350394654293
         },
         {
             "feature": "ph",
-            "importance": 0.024787814844115127
+            "importance": 0.030407608195666267
+        },
+        {
+            "feature": "growing_degree_days",
+            "importance": 0.027424072759657556
         },
         {
             "feature": "ph_optimality",
-            "importance": 0.013511047516604925
+            "importance": 0.014709930078255308
         }
     ],
     "confusion_matrix": {
