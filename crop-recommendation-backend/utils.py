@@ -20,33 +20,38 @@ def load_model():
     return model, scaler
 
 def validate_input(data):
-    """Validate input data"""
+    """Robust validation of agricultural inputs with domain constraints"""
+    errors = []
     required_fields = ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall']
     
-    # Check all required fields are present
+    # 1. Check required fields
     for field in required_fields:
         if field not in data:
-            raise ValueError(f"Missing required field: {field}")
-    
-    # Validate ranges
-    ranges = {
-        'N': (0, 140),
-        'P': (5, 145),
-        'K': (5, 205),
-        'temperature': (8.0, 44.0),
-        'humidity': (14.0, 100.0),
-        'ph': (3.5, 10.0),
-        'rainfall': (20.0, 300.0)
+            errors.append(f"Missing required field: {field}")
+            
+    if errors:
+        return errors
+        
+    # 2. Domain-specific validation constraints
+    constraints = {
+        'N': (0, 140, 'Nitrogen'),
+        'P': (5, 145, 'Phosphorus'),
+        'K': (5, 205, 'Potassium'),
+        'temperature': (8, 44, 'Temperature'),
+        'humidity': (14, 100, 'Humidity'),
+        'ph': (3.5, 10, 'pH'),
+        'rainfall': (20, 300, 'Rainfall')
     }
     
-    for field, (min_val, max_val) in ranges.items():
-        value = data[field]
-        if not isinstance(value, (int, float)):
-            raise ValueError(f"{field} must be a number")
-        if value < min_val or value > max_val:
-            raise ValueError(f"{field} must be between {min_val} and {max_val}")
-    
-    return True
+    for field, (min_val, max_val, name) in constraints.items():
+        try:
+            val = float(data[field])
+            if val < min_val or val > max_val:
+                errors.append(f"{name} must be between {min_val} and {max_val}")
+        except (ValueError, TypeError):
+            errors.append(f"{name} must be a valid number")
+            
+    return errors
 
 def prepare_input(data):
     """Prepare engineered features for model prediction"""

@@ -4,6 +4,17 @@ from models import db, Prediction
 from utils import load_model, validate_input, prepare_input
 from explainability import CropExplainer
 import os
+import logging
+import uuid
+from datetime import datetime
+
+# -------------------- LOGGING SETUP --------------------
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # -------------------- APP SETUP --------------------
 
@@ -74,18 +85,37 @@ def home():
 
 @app.route("/predict", methods=["POST"])
 def predict():
+    request_id = str(uuid.uuid4())
     try:
         if model is None or scaler is None:
+            logger.error(f"[{request_id}] Model not loaded")
             return jsonify({
+                "status": "error",
+                "request_id": request_id,
                 "error": "Model not loaded. Please ensure model files exist in ml_models folder."
             }), 500
         
         data = request.get_json()
         if not data:
-            return jsonify({"error": "No data provided"}), 400
+            logger.warning(f"[{request_id}] No data provided")
+            return jsonify({
+                "status": "error",
+                "request_id": request_id,
+                "error": "No data provided"
+            }), 400
         
-        print("Received data:", data)
-        validate_input(data)
+        logger.info(f"[{request_id}] Input Received: {data}")
+        
+        # Robust Validation
+        errors = validate_input(data)
+        if errors:
+            logger.warning(f"[{request_id}] Validation Failed: {errors}")
+            return jsonify({
+                "status": "error",
+                "request_id": request_id,
+                "errors": errors
+            }), 400
+            
         X = prepare_input(data)
         print("Prepared input:", X)
         
@@ -155,6 +185,7 @@ def predict():
 
         return jsonify({
             "status": "success",
+            "request_id": request_id,
             "predicted_crop": predicted_crop,
             "confidence": top_confidence,
             "alternatives": alternatives,
@@ -162,20 +193,14 @@ def predict():
             "reasons": reasons
         })
 
-    except ValueError as ve:
-        print("Validation ERROR:", ve)
-        return jsonify({
-            "status": "error",
-            "error": str(ve)
-        }), 400
-    
     except Exception as e:
-        print("ERROR:", e)
+        logger.error(f"[{request_id}] Server Error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
             "status": "error",
-            "error": str(e)
+            "request_id": request_id,
+            "error": "An internal server error occurred. Please contact support with the request ID."
         }), 500
 
 

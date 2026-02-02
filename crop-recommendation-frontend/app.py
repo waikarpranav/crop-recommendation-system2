@@ -392,8 +392,17 @@ if page == "🏠 Make Prediction":
                         st.metric("pH Level", f"{payload['ph']}")
                         st.metric("Rainfall", f"{payload['rainfall']} mm")
             else:
-                error_msg = result.get('error', 'Unknown error') if result else 'No response from API'
-                st.error(f"❌ Prediction Failed: {error_msg}")
+                request_id = result.get('request_id', 'N/A') if result else 'N/A'
+                
+                if result and 'errors' in result:
+                    st.error("❌ Validation Failed")
+                    for err in result['errors']:
+                        st.write(f"- {err}")
+                else:
+                    error_msg = result.get('error', 'Unknown error') if result else 'No response from API'
+                    st.error(f"❌ Prediction Failed: {error_msg}")
+                
+                st.info(f"🆔 Request ID: `{request_id}` (Please provide this when reporting issues)")
                 
                 # Show debug info
                 with st.expander("🔍 Debug Information"):
