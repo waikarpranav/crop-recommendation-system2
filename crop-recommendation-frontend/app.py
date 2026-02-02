@@ -318,7 +318,7 @@ if page == "🏠 Make Prediction":
             }
             
             # Call API
-            result = call_prediction_api(f"{API_BASE_URL}/predict", payload)
+            result = call_prediction_api(f"{API_BASE_URL}/api/v1/predict", payload)
             
             if result and result.get('status') == 'success':
                 crop = result['predicted_crop']

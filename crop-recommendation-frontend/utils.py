@@ -34,7 +34,7 @@ def get_history(base_url, limit=10):
     """Fetch prediction history from API"""
     try:
         response = requests.get(
-            f"{base_url}/history?limit={limit}",
+            f"{base_url}/api/v1/history?limit={limit}",
             timeout=10
         )
         
@@ -50,8 +50,9 @@ def get_history(base_url, limit=10):
 def get_stats(base_url):
     """Fetch statistics from API"""
     try:
+        # Use versioned API
         response = requests.get(
-            f"{base_url}/stats",
+            f"{base_url}/api/v1/stats",
             timeout=10
         )
         
