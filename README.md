@@ -4,7 +4,7 @@ Advanced AI-powered Decision Support System (DSS) for precision agriculture.
 
 ## 🚀 The Upgrade Journey: From Prototype to Production
 
-This project evolved through a structured 6-tier upgrade process to reach professional industry standards.
+This project evolved through a structured 7-tier upgrade process to reach professional industry standards.
 
 ### 🧬 Tier 1: Advanced Feature Engineering
 *   **Domain Intelligence**: Added agricultural features like **NPK Ratio**, **Nutrient Balance**, and **Water Stress Index**.
@@ -33,6 +33,12 @@ This project evolved through a structured 6-tier upgrade process to reach profes
 *   **Hyperparameter Tuning**: Used **RandomizedSearchCV** to find mathematically optimal model settings.
 *   **Advanced Analytics**: Deep insights into model performance through **Confusion Matrices** and **Feature Importance** distributions.
 *   **Stability**: 5-fold cross-validation reporting to prevent overfitting and ensure generalization.
+
+### 🏁 Tier 7: Production-Readiness Signals (Final Finish)
+*   **API Versioning**: Standardized on `/api/v1/` for professional, future-proof releases.
+*   **Health Heartbeat**: Implemented `/api/v1/health` for real-time monitoring of model loading and system health.
+*   **Deep Data Capture**: The database now tracks every **Request ID** and **Confidence Score** for advanced auditing.
+*   **Security & Sanitization**: Strict input cleaning to ensure system resilience and data integrity.
 
 ---
 

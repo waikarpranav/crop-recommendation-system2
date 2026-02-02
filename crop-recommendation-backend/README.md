@@ -3,6 +3,8 @@
 The professional intelligence layer for the Smart Crop Recommendation System.
 
 ## ✨ Core Features
+- **API Versioning**: Standardized `/api/v1/` routes for professional deployments.
+- **Health Heartbeat**: Live `/api/v1/health` endpoint for system monitoring.
 - **RESTful Endpoints**: Robust `/predict`, `/history`, and `/model-comparison`.
 - **AI Explanations**: SHAP integration providing agricultural reasoning.
 - **Production DevOps**: Centralized logging, UUID request tracking, and robust error handling.
