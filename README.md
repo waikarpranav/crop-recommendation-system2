@@ -40,6 +40,12 @@ This project evolved through a structured 7-tier upgrade process to reach profes
 *   **Deep Data Capture**: The database now tracks every **Request ID** and **Confidence Score** for advanced auditing.
 *   **Security & Sanitization**: Strict input cleaning to ensure system resilience and data integrity.
 
+### 🚀 Tier 8: Senior Engineering Standards
+*   **Robust Data Models**: Implemented **Pydantic** for strict data validation and serialization.
+*   **Type Safety**: Added **Type Hints** across the codebase for improved readability and maintainability.
+*   **Automated Testing**: Integrated **Pytest** for comprehensive unit and integration tests.
+*   **CI/CD Pipeline**: Established **GitHub Actions** for automated testing and deployment workflows.
+
 ---
 
 ## 🛠️ Tech Stack
