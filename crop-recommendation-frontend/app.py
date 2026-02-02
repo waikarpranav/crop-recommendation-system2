@@ -324,7 +324,8 @@ if page == "🏠 Make Prediction":
                 crop = result['predicted_crop']
                 
                 # Display result with animation
-                st.balloons()
+                # Display result with professional notification
+                st.toast("✅ Analysis Complete: Recommendation Ready!", icon="🌾")
                 
                 st.markdown(f"""
                 <div class="prediction-card">

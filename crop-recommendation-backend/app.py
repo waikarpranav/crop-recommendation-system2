@@ -299,10 +299,12 @@ def history():
             ]
         })
     except Exception as e:
-        print("ERROR in history:", e)
+        logger.error(f"❌ History retrieval failed: {str(e)}")
         return jsonify({
             "status": "error",
-            "error": str(e)
+            "error": "Database Query Error",
+            "details": str(e),
+            "hint": "This often happens if you upgraded the schema but the database wasn't updated. Try restarting the server."
         }), 500
 
 
@@ -327,10 +329,11 @@ def stats():
             }
         })
     except Exception as e:
-        print("ERROR in stats:", e)
+        logger.error(f"❌ Statistics retrieval failed: {str(e)}")
         return jsonify({
             "status": "error",
-            "error": str(e)
+            "error": "Statistics Calculation Error",
+            "details": str(e)
         }), 500
 
 
