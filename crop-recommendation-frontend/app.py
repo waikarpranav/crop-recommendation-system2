@@ -334,6 +334,10 @@ if page == "🏠 Make Prediction":
                 </div>
                 """, unsafe_allow_html=True)
 
+                st.markdown("---")
+                st.header("🛡️ Trust & Explainability Dashboard")
+                st.caption("This dashboard provides transparency into why the AI made this choice and how reliable it is.")
+
                 # Display Confidence
                 if 'confidence' in result:
                     confidence_pct = result['confidence'] * 100
@@ -364,16 +368,18 @@ if page == "🏠 Make Prediction":
                 # Display Alternatives
                 if 'alternatives' in result and result['alternatives']:
                     st.markdown("### 🔄 Alternative Options")
-                    alt_cols = st.columns(len(result['alternatives']))
-                    for i, alt in enumerate(result['alternatives']):
-                        with alt_cols[i]:
-                            st.markdown(f"""
-                            <div style="background: white; padding: 1rem; border-radius: 10px; border: 1px solid #ddd; text-align: center; height: 100%;">
-                                <h4 style="margin: 0; color: #22808d;">{alt['crop'].upper()}</h4>
-                                <p style="margin: 5px 0; font-size: 0.9rem;">Match: <strong>{alt['confidence']*100:.1f}%</strong></p>
-                                <span style="background: {'#c8e6c9' if alt['suitability'] == 'Moderate' else '#fff9c4'}; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem;">{alt['suitability']} Match</span>
-                            </div>
-                            """, unsafe_allow_html=True)
+                    st.info("If the primary recommendation isn't suitable, consider these top-ranking alternatives:")
+                    
+                    # Convert to DataFrame for a clean table look as shown in requirements
+                    alt_data = []
+                    for alt in result['alternatives']:
+                        alt_data.append({
+                            "Crop": alt['crop'].upper(),
+                            "Suitability": alt['suitability'],
+                            "Confidence": f"{alt['confidence']*100:.1f}%"
+                        })
+                    
+                    st.table(pd.DataFrame(alt_data))
                     st.markdown("<br>", unsafe_allow_html=True)
                 
                 st.success(f"✓ Prediction completed successfully!")
