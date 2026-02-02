@@ -331,6 +331,20 @@ if page == "🏠 Make Prediction":
                 </div>
                 """, unsafe_allow_html=True)
                 
+                # Display Why this Crop? reasons
+                if 'reasons' in result and result['reasons']:
+                    st.markdown("### 🔍 Why this crop?")
+                    cols = st.columns(len(result['reasons']))
+                    for i, reason in enumerate(result['reasons']):
+                        with cols[i]:
+                            st.markdown(f"""
+                            <div style="background: #e1f5fe; padding: 1rem; border-radius: 10px; border-left: 5px solid #03a9f4; height: 100%;">
+                                <p style="margin: 0; color: #01579b; font-weight: bold;">Reason {i+1}</p>
+                                <p style="margin: 0; color: #0277bd;">{reason.capitalize()}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    st.markdown("<br>", unsafe_allow_html=True)
+                
                 st.success(f"✓ Prediction completed successfully!")
                 
                 # Display input summary in a nice format

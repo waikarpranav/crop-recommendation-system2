@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models import db, Prediction
 from utils import load_model, validate_input, prepare_input
+from explainability import CropExplainer
 import os
 
 # -------------------- APP SETUP --------------------
@@ -28,9 +29,15 @@ db.init_app(app)
 try:
     model, scaler = load_model()
     print("✓ Model and scaler loaded successfully")
+    
+    # Initialize Explainer
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(base_dir, 'Data', 'Crop_recommendation.csv')
+    explainer = CropExplainer(model, data_path)
+    print("✓ Explainability engine (SHAP) initialized")
 except Exception as e:
-    print(f"✗ Error loading model: {e}")
-    model, scaler = None, None
+    print(f"✗ Error during startup: {e}")
+    model, scaler, explainer = None, None, None
 
 # -------------------- INIT DB --------------------
 
@@ -96,10 +103,24 @@ def predict():
             print(f"Warning: Could not save to database: {db_error}")
             db.session.rollback()
         
+        # Generate Explanations
+        try:
+            feature_names = [
+                'N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall',
+                'NPK_ratio', 'nutrient_balance', 'temp_humidity_index', 
+                'ph_optimality', 'water_stress_index', 'growing_degree_days', 
+                'N_P_ratio', 'N_K_ratio'
+            ]
+            reasons = explainer.explain_prediction(X_scaled, feature_names)
+        except Exception as e:
+            print(f"Explainability Error: {e}")
+            reasons = ["Highly favorable conditions"]
+
         return jsonify({
             "status": "success",
             "predicted_crop": predicted_crop,
-            "input_data": data
+            "input_data": data,
+            "reasons": reasons
         })
 
     except ValueError as ve:
