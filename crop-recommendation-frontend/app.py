@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import os
 from utils import call_prediction_api, get_history, get_stats
 
 # ==================== PAGE CONFIG ====================
