@@ -89,6 +89,27 @@ Use these commands to maintain, retrain, or evaluate the system locally.
 | `/api/v1/health` | `GET` | Verify if model/scaler loaded correctly. |
 | `/api/v1/predict` | `POST` | Test prediction with JSON payload. |
 
+## ☁️ Cloud Deployment Guide
+
+Follow these steps to host your system live on the web.
+
+### 🔌 Backend (Render.com)
+1. **New Web Service**: Connect your GitHub repository.
+2. **Root Directory**: `crop-recommendation-backend`
+3. **Build Command**: `pip install -r requirements.txt`
+4. **Start Command**: `gunicorn app:app`
+5. **Environment Variables**:
+   - `FLASK_ENV`: `production`
+   - `DATABASE_URL`: Your PostgreSQL URL (Render provides this).
+   - `PYTHON_VERSION`: `3.10.0` or higher.
+
+### 🎨 Frontend (Streamlit Community Cloud)
+1. **Deploy app**: Connect your GitHub repository.
+2. **Main file path**: `crop-recommendation-frontend/app.py`
+3. **Advanced Settings**:
+   - Ensure the `API_BASE_URL` in your frontend matches your live Render URL.
+
+
 
 ## 📈 Model Insights
 The system currently utilizes a **Tuned Random Forest** model achieving over **99% test accuracy**, validated by advanced confusion matrix analysis and cross-validation reports.
