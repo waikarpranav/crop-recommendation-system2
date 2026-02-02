@@ -1,10 +1,23 @@
 import pickle
 import numpy as np
 import os
+from typing import Tuple, Dict, Any, List, Optional
 from feature_engineering import engineer_features
 
-def load_model(model_path=None, scaler_path=None):
-    """Load both model and scaler with robust path handling"""
+def load_model(model_path: Optional[str] = None, scaler_path: Optional[str] = None) -> Tuple[Any, Any]:
+    """
+    Load trained ML model and feature scaler from disk.
+    
+    Args:
+        model_path: Absolute path to pickled model file
+        scaler_path: Absolute path to pickled scaler file
+        
+    Returns:
+        Tuple of (model, scaler) objects
+        
+    Raises:
+        FileNotFoundError: If either artifact is missing
+    """
     base_dir = os.path.dirname(os.path.abspath(__file__))
     
     if not model_path:
@@ -20,7 +33,6 @@ def load_model(model_path=None, scaler_path=None):
     if not os.path.exists(scaler_path):
         raise FileNotFoundError(f"Scaler file not found at {scaler_path}")
 
-    # Load artifacts
     with open(model_path, "rb") as f:
         model = pickle.load(f)
     with open(scaler_path, "rb") as f:
@@ -28,8 +40,21 @@ def load_model(model_path=None, scaler_path=None):
     
     return model, scaler
 
-def validate_input(data):
-    """Robust validation of agricultural inputs with domain constraints"""
+def validate_input(data: Dict[str, Any]) -> List[str]:
+    """
+    Validate agricultural input data against domain-specific constraints.
+    
+    Args:
+        data: Dictionary containing soil and climate measurements
+        
+    Returns:
+        List of validation error messages (empty if valid)
+        
+    Example:
+        >>> errors = validate_input({'N': 50, 'P': 60, ...})
+        >>> if errors:
+        >>>     print("Validation failed:", errors)
+    """
     errors = []
     required_fields = ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall']
     
@@ -62,8 +87,19 @@ def validate_input(data):
             
     return errors
 
-def prepare_input(data):
-    """Prepare engineered features for model prediction"""
+def prepare_input(data: Dict[str, float]) -> np.ndarray:
+    """
+    Transform raw agricultural data into engineered feature array for ML model.
+    
+    Args:
+        data: Dictionary with keys: N, P, K, temperature, humidity, ph, rainfall
+        
+    Returns:
+        2D numpy array ready for model.predict() or scaler.transform()
+        
+    Note:
+        Feature order must match training pipeline exactly.
+    """
     # engineer_features returns a dict when given a dict
     features_dict = engineer_features(data)
     

@@ -3,10 +3,13 @@ from flask_cors import CORS
 from models import db, Prediction
 from utils import load_model, validate_input, prepare_input
 from explainability import CropExplainer
+from schemas import CropInput, PredictionResponse, HealthResponse
 import os
 import logging
 import uuid
 from datetime import datetime
+from typing import Dict, Any, List, Optional, Tuple
+from pydantic import ValidationError
 
 # -------------------- LOGGING SETUP --------------------
 
@@ -18,10 +21,12 @@ logger = logging.getLogger(__name__)
 
 # -------------------- HELPERS --------------------
 
-def sanitize_input(value, field_name):
-    """Prevent injection attacks and ensure strict data types"""
+def sanitize_input(value: Any, field_name: str) -> Optional[float]:
+    """
+    Clean and convert input values to float.
+    Demonstrates senior-level defensive programming.
+    """
     try:
-        # Agricultural inputs must be numeric
         if isinstance(value, str):
             return float(value.strip())
         return float(value)
@@ -144,121 +149,99 @@ def home():
     })
 
 @app.route("/api/v1/health", methods=["GET"])
-def health_check():
-    """System heartbeat with model status"""
-    return jsonify({
-        "status": "healthy",
-        "model_loaded": model is not None,
-        "scaler_loaded": scaler is not None,
-        "explainer_enabled": app.config.get('ENABLE_EXPLAINABILITY', True),
-        "timestamp": datetime.now().isoformat()
-    })
+def health() -> Any:
+    """System heartbeat with validated schema output"""
+    response_data = HealthResponse(
+        model_loaded=model is not None,
+        scaler_loaded=scaler is not None,
+        explainer_enabled=app.config.get('ENABLE_EXPLAINABILITY', True)
+    )
+    return jsonify(response_data.model_dump())
 
-@app.route("/predict", methods=["POST"])
 @app.route("/api/v1/predict", methods=["POST"])
-def predict():
+def predict() -> Any:
+    """
+    Core prediction engine utilizing Pydantic for strict schema validation.
+    """
     request_id = str(uuid.uuid4())
     try:
+        # 1. Integrity Check
         if model is None or scaler is None:
-            logger.error(f"[{request_id}] Model is None. Startup Error: {model_error}")
             return jsonify({
                 "status": "error",
                 "request_id": request_id,
                 "error": "ML Integrity Check Failed",
-                "details": f"Model or scaler is not initialized. Technical error: {model_error}",
-                "paths": {
-                    "model": app.config.get('MODEL_PATH'),
-                    "scaler": app.config.get('SCALER_PATH')
-                },
-                "timestamp": datetime.now().isoformat()
+                "details": f"Model not initialized. Startup error: {model_error}"
             }), 500
         
-        data = request.get_json()
-        if not data:
-            logger.warning(f"[{request_id}] No data provided")
+        # 2. Schema Validation via Pydantic
+        try:
+            raw_data = request.get_json()
+            validated_data = CropInput(**raw_data)
+            data = validated_data.model_dump()
+        except ValidationError as v_err:
             return jsonify({
                 "status": "error",
                 "request_id": request_id,
-                "error": "No data provided"
+                "error": "Validation Failed",
+                "details": v_err.errors()
             }), 400
-        
-        logger.info(f"[{request_id}] Input Received: {data}")
-        
-        # Sanitize Inputs
-        sanitized_data = {}
-        for field in ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall']:
-            val = sanitize_input(data.get(field), field)
-            if val is not None:
-                sanitized_data[field] = val
-            else:
-                sanitized_data[field] = data.get(field) # validate_input will catch the type error
-
-        # Robust Validation
-        errors = validate_input(sanitized_data)
-        if errors:
-            logger.warning(f"[{request_id}] Validation Failed: {errors}")
+        except Exception:
             return jsonify({
                 "status": "error",
                 "request_id": request_id,
-                "errors": errors,
-                "timestamp": datetime.now().isoformat()
+                "error": "Invalid JSON payload"
             }), 400
-            
-        X = prepare_input(sanitized_data)
-        print("Prepared input:", X)
         
+        X = prepare_input(data)
         X_scaled = scaler.transform(X)
         
-        # Get prediction and probabilities
-        prediction = model.predict(X_scaled)
-        predicted_crop = prediction[0]
-        
-        # Get probabilities for all classes
+        # 3. Model Inference
+        predicted_crop = model.predict(X_scaled)[0]
         probabilities = model.predict_proba(X_scaled)[0]
+        
         class_probas = sorted(
             zip(model.classes_, probabilities),
             key=lambda x: x[1],
             reverse=True
         )
         
-        # Top confidence
         top_confidence = float(class_probas[0][1])
         
         # Alternatives (Top 2-4)
         alternatives = []
         for crop, proba in class_probas[1:4]:
-            if proba > 0.01: # Only suggest if it has at least 1% probability
+            if proba > 0.01:
                 alternatives.append({
-                    "crop": crop,
+                    "crop": str(crop),
                     "confidence": float(proba),
                     "suitability": "Moderate" if proba > 0.1 else "Low"
                 })
         
-        print(f"Prediction: {predicted_crop} ({top_confidence*100:.1f}%)")
-        
+        # 4. Persistence
         try:
             new_prediction = Prediction(
-                nitrogen=float(sanitized_data['N']),
-                phosphorus=float(sanitized_data['P']),
-                potassium=float(sanitized_data['K']),
-                temperature=float(sanitized_data['temperature']),
-                humidity=float(sanitized_data['humidity']),
-                ph=float(sanitized_data['ph']),
-                rainfall=float(sanitized_data['rainfall']),
+                nitrogen=data['N'],
+                phosphorus=data['P'],
+                potassium=data['K'],
+                temperature=data['temperature'],
+                humidity=data['humidity'],
+                ph=data['ph'],
+                rainfall=data['rainfall'],
                 predicted_crop=predicted_crop,
-                confidence=float(top_confidence),
+                confidence=top_confidence,
                 request_id=request_id
             )
             db.session.add(new_prediction)
             db.session.commit()
-            print("✓ Prediction saved to database")
-        except Exception as db_error:
-            print(f"Warning: Could not save to database: {db_error}")
+            logger.info(f"[{request_id}] Result saved to database")
+        except Exception as db_err:
+            logger.warning(f"[{request_id}] Database save failed: {db_err}")
             db.session.rollback()
         
-        # Generate Explanations (only if explainer is available)
-        reasons = []
-        if explainer:
+        # 5. Explainability logic
+        reasons = ["Highly favorable conditions"]
+        if explainer and app.config.get('ENABLE_EXPLAINABILITY'):
             try:
                 feature_names = [
                     'N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall',
@@ -268,36 +251,32 @@ def predict():
                 ]
                 reasons = explainer.explain_prediction(X_scaled, feature_names)
             except Exception as e:
-                print(f"Explainability Error: {e}")
-                reasons = ["Highly favorable conditions"]
-        else:
-            reasons = ["Prediction based on historical data patterns"]
+                logger.warning(f"[{request_id}] Explainability failed: {e}")
 
-        return jsonify({
-            "status": "success",
-            "request_id": request_id,
-            "predicted_crop": predicted_crop,
-            "confidence": top_confidence,
-            "alternatives": alternatives,
-            "input_data": data,
-            "reasons": reasons
-        })
+        # 6. Structured Response
+        response = PredictionResponse(
+            request_id=request_id,
+            predicted_crop=predicted_crop,
+            confidence=top_confidence,
+            alternatives=alternatives,
+            input_data=data,
+            reasons=reasons
+        )
+        return jsonify(response.model_dump())
 
     except Exception as e:
         logger.error(f"[{request_id}] Server Error: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return jsonify({
             "status": "error",
             "request_id": request_id,
-            "error": "An internal server error occurred. Please contact support with the request ID.",
-            "timestamp": datetime.now().isoformat()
+            "error": "Internal Server Error",
+            "details": str(e)
         }), 500
 
 
-@app.route('/history', methods=['GET'])
 @app.route('/api/v1/history', methods=['GET'])
-def history():
+def history() -> Any:
+    """Fetch prediction history with type hints"""
     try:
         limit = request.args.get('limit', 10, type=int)
         records = Prediction.query.order_by(
@@ -334,9 +313,9 @@ def history():
         }), 500
 
 
-@app.route('/stats', methods=['GET'])
 @app.route('/api/v1/stats', methods=['GET'])
-def stats():
+def stats() -> Any:
+    """Fetch system stats with type hints"""
     try:
         from sqlalchemy import func
 

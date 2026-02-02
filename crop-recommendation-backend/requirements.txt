@@ -11,6 +11,9 @@ xgboost==2.0.3
 shap==0.44.0
 matplotlib==3.8.2
 seaborn==0.13.0
+pydantic==2.5.2
+pytest==7.4.3
+httpx==0.25.2
 
 
 
