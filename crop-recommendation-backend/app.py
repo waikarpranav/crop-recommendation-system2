@@ -90,10 +90,33 @@ def predict():
         print("Prepared input:", X)
         
         X_scaled = scaler.transform(X)
+        
+        # Get prediction and probabilities
         prediction = model.predict(X_scaled)
         predicted_crop = prediction[0]
         
-        print(f"Prediction: {predicted_crop}")
+        # Get probabilities for all classes
+        probabilities = model.predict_proba(X_scaled)[0]
+        class_probas = sorted(
+            zip(model.classes_, probabilities),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        
+        # Top confidence
+        top_confidence = float(class_probas[0][1])
+        
+        # Alternatives (Top 2-4)
+        alternatives = []
+        for crop, proba in class_probas[1:4]:
+            if proba > 0.01: # Only suggest if it has at least 1% probability
+                alternatives.append({
+                    "crop": crop,
+                    "confidence": float(proba),
+                    "suitability": "Moderate" if proba > 0.1 else "Low"
+                })
+        
+        print(f"Prediction: {predicted_crop} ({top_confidence*100:.1f}%)")
         
         try:
             new_prediction = Prediction(
@@ -133,6 +156,8 @@ def predict():
         return jsonify({
             "status": "success",
             "predicted_crop": predicted_crop,
+            "confidence": top_confidence,
+            "alternatives": alternatives,
             "input_data": data,
             "reasons": reasons
         })

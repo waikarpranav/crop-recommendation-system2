@@ -330,6 +330,19 @@ if page == "🏠 Make Prediction":
                     <p>Based on your soil and climate conditions, <strong>{crop.upper()}</strong> is the best crop to cultivate.</p>
                 </div>
                 """, unsafe_allow_html=True)
+
+                # Display Confidence
+                if 'confidence' in result:
+                    confidence_pct = result['confidence'] * 100
+                    st.markdown(f"#### 🎯 Prediction Confidence: {confidence_pct:.1f}%")
+                    st.progress(result['confidence'])
+                    
+                    if confidence_pct > 80:
+                        st.success("🌟 Highly Reliable Recommendation")
+                    elif confidence_pct > 50:
+                        st.warning("⚖️ Moderate Confidence - Consider alternatives")
+                    else:
+                        st.error("⚠️ Low Confidence - Consult an agronomist")
                 
                 # Display Why this Crop? reasons
                 if 'reasons' in result and result['reasons']:
@@ -341,6 +354,21 @@ if page == "🏠 Make Prediction":
                             <div style="background: #e1f5fe; padding: 1rem; border-radius: 10px; border-left: 5px solid #03a9f4; height: 100%;">
                                 <p style="margin: 0; color: #01579b; font-weight: bold;">Reason {i+1}</p>
                                 <p style="margin: 0; color: #0277bd;">{reason.capitalize()}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    st.markdown("<br>", unsafe_allow_html=True)
+
+                # Display Alternatives
+                if 'alternatives' in result and result['alternatives']:
+                    st.markdown("### 🔄 Alternative Options")
+                    alt_cols = st.columns(len(result['alternatives']))
+                    for i, alt in enumerate(result['alternatives']):
+                        with alt_cols[i]:
+                            st.markdown(f"""
+                            <div style="background: white; padding: 1rem; border-radius: 10px; border: 1px solid #ddd; text-align: center; height: 100%;">
+                                <h4 style="margin: 0; color: #22808d;">{alt['crop'].upper()}</h4>
+                                <p style="margin: 5px 0; font-size: 0.9rem;">Match: <strong>{alt['confidence']*100:.1f}%</strong></p>
+                                <span style="background: {'#c8e6c9' if alt['suitability'] == 'Moderate' else '#fff9c4'}; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem;">{alt['suitability']} Match</span>
                             </div>
                             """, unsafe_allow_html=True)
                     st.markdown("<br>", unsafe_allow_html=True)
