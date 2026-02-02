@@ -1,6 +1,7 @@
 import pickle
 import numpy as np
 import os
+from feature_engineering import engineer_features
 
 def load_model():
     """Load both model and scaler"""
@@ -48,13 +49,18 @@ def validate_input(data):
     return True
 
 def prepare_input(data):
-    """Prepare input array for model prediction"""
-    return np.array([[
-        data["N"],
-        data["P"],
-        data["K"],
-        data["temperature"],
-        data["humidity"],
-        data["ph"],
-        data["rainfall"]
-    ]])
+    """Prepare engineered features for model prediction"""
+    # engineer_features returns a dict when given a dict
+    features_dict = engineer_features(data)
+    
+    # Ensure features are in the correct order for the model
+    # The order must match the one used during training
+    feature_order = [
+        'N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall',
+        'NPK_ratio', 'nutrient_balance', 'temp_humidity_index', 
+        'ph_optimality', 'water_stress_index', 'growing_degree_days', 
+        'N_P_ratio', 'N_K_ratio'
+    ]
+    
+    input_list = [features_dict[f] for f in feature_order]
+    return np.array([input_list])

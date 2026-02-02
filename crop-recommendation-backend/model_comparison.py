@@ -7,6 +7,7 @@ from sklearn.model_selection import cross_val_score, StratifiedKFold
 import pandas as pd
 import json
 import os
+from feature_engineering import engineer_features
 
 def compare_models(csv_path):
     """
@@ -20,6 +21,10 @@ def compare_models(csv_path):
     df = pd.read_csv(csv_path)
     X = df.drop('label', axis=1)
     y = df['label']
+
+    # Apply feature engineering
+    print("Applying feature engineering to comparison pipeline...")
+    X = engineer_features(X)
 
     # Define models
     models = {
