@@ -40,26 +40,33 @@ This project evolved through a structured 7-tier upgrade process to reach profes
 *   **Deep Data Capture**: The database now tracks every **Request ID** and **Confidence Score** for advanced auditing.
 *   **Security & Sanitization**: Strict input cleaning to ensure system resilience and data integrity.
 
-### 🚀 Tier 8: Senior Engineering Standards
-*   **Robust Data Models**: Implemented **Pydantic** for strict data validation and serialization.
-*   **Type Safety**: Added **Type Hints** across the codebase for improved readability and maintainability.
-*   **Automated Testing**: Integrated **Pytest** for comprehensive unit and integration tests.
-*   **CI/CD Pipeline**: Established **GitHub Actions** for automated testing and deployment workflows.
+### 🛡️ Tier 9: JWT Authentication & User Management
+*   **Secure Access**: Implemented a full-stack authentication system using **JWT (JSON Web Tokens)**.
+*   **Bcrypt Security**: Industry-standard password hashing with salt.
+*   **Session Management**: State-aware frontend that securely stores and attaches tokens to API requests.
+*   **Data Isolation**: Users only see their own prediction history and statistics.
+
+### 🏗️ Tier 10: Infrastructure as Code (Blueprint Deployment)
+*   **One-Click Deployment**: Added `render.yaml` to orchestrate both backend and frontend services simultaneously.
+*   **Automated CI/CD**: Seamless deployment from GitHub with automatic database schema migrations.
+*   **Service Orchestration**: Automatic linkage between Frontend and Backend URLs via environment variables.
 
 ---
 
 ## 🛠️ Tech Stack
-*   **Backend**: Flask (Python), PostgreSQL, SQLAlchemy
-*   **Frontend**: Streamlit
+*   **Backend**: Flask (Python), PostgreSQL, SQLAlchemy, **PyJWT**, **Bcrypt**
+*   **Frontend**: Streamlit, **Session State Management**
 *   **Machine Learning**: Scikit-Learn, XGBoost
 *   **Explainability**: SHAP
-*   **DevOps**: Render/Railway, Git, Professional Logging
+*   **DevOps**: **Render (Blueprints)**, GitHub Actions, Git, Professional Logging
 
 ## 🏃 Quick Start
 
 ### 1. Backend Setup
 ```bash
 cd crop-recommendation-backend
+python -m venv venv
+# Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
@@ -67,6 +74,8 @@ python app.py
 ### 2. Frontend Setup
 ```bash
 cd crop-recommendation-frontend
+python -m venv venv
+# Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
