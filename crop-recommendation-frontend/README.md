@@ -3,10 +3,11 @@
 A premium, interactive dashboard for farmer decision support.
 
 ## ✨ Core Features
-- **Intuitive Prediction UI**: Interactive sliders and quick presets (Rice, Maize, Coffee).
-- **Visualization Suite**: Plotly-powered charts for model comparisons and feature importance.
-- **Scientific Insights**: Advanced dashboard for confusion matrices and overfitting analysis.
-- **Responsive Error Handling**: Multi-error feedback lists and Request ID tracking.
+- **Multi-language Support**: Full UI localization for **English**, **Hindi**, and **Marathi**.
+- **JWT Authentication UI**: Integrated Login/Register forms with secure token handling.
+- **Intuitive Prediction UI**: Interactive sliders, manual input tabs, and quick presets.
+- **Trust & Explainability Dashboard**: Visualization of SHAP reasons and confidence scores.
+- **Responsive Analytics**: User-specific prediction history and crop distribution charts.
 
 ## 🚀 Running
 ```bash
