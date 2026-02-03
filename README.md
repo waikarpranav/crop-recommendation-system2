@@ -1,31 +1,21 @@
-# 🌾 Smart Crop Recommendation System 2.0
+# 🌾 Crop Recommendation System (ML + Full Stack)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](https://opensource.org/licenses/MIT)
-[![Python: 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
-[![Framework: Flask](https://img.shields.io/badge/Framework-Flask-lightgrey.svg)](https://flask.palletsprojects.com/)
-[![Framework: Streamlit](https://img.shields.io/badge/Framework-Streamlit-red.svg)](https://streamlit.io/)
-
-An enterprise-grade **Decision Support System (DSS)** powered by Machine Learning to help farmers optimize crop selection based on soil chemistry and climate data.
-
-> [!NOTE]
-> For a deep dive into the system architecture, security implementation, and ML pipeline, refer to the **[Comprehensive Technical Manual](DOCUMENTATION.md)**.
+A professional, full-stack decision support system that recommends the most suitable crop based on soil chemistry and environmental parameters.  
+Built with a **Flask API**, **Streamlit Frontend**, and **Random Forest (99% Acc)**, featuring enterprise-grade security and explainable AI.
 
 ---
 
-## 🌟 Key Technical Differentiators
+## 🚀 Project Overview
 
-Unlike basic ML prototypes, this system is built for production reliability:
-
-- **🛡️ Multi-Tier Security**: Stateless **JWT Authentication** (Access/Refresh strategy) with **Bcrypt** password hashing.
-- **🔍 Explainable AI (XAI)**: Integrated **SHAP** engine to provide top-3 scientific reasons for every prediction.
-- **🧬 Domain Engineering**: Custom agricultural features including **Growing Degree Days (GDD)** and **Temperature-Humidity Index (THI)**.
-- **⚖️ Scientific Rigor**: Automated **Model Comparison Pipeline** (RF, XGBoost, SVM) with 5-fold cross-validation reports.
-- **🌐 Localization**: Full UI support for **English, Hindi, and Marathi**.
-- **🏥 System Health**: Versioned `/api/v1/` endpoints with real-time `/health` heartbeat monitoring.
+Choosing the right crop is critical for maximizing yield and minimizing resource waste. This project bridges the gap between raw agricultural data and actionable intelligence using:
+- **High-Precision ML**: Random Forest model tuned for 99% accuracy.
+- **Security**: Robust JWT-based authentication (Access/Refresh strategy).
+- **Explainability**: SHAP integration to tell farmers *why* a crop was recommended.
+- **Scalability**: Decoupled frontend/backend architecture ready for cloud deployment.
 
 ---
 
-## 🏗️ System Architecture
+## 🧠 System Architecture
 
 ```mermaid
 graph LR
@@ -33,57 +23,102 @@ graph LR
     UI -->|JWT Auth| API[Flask REST API]
     API -->|Validation| Pydantic[Pydantic Schemas]
     Pydantic -->|Inference| ML[Random Forest + SHAP]
-    ML -->|Logs| DB[(PostgreSQL)]
+    ML -->|Audit| DB[(PostgreSQL)]
     API -->|JSON| UI
-```
-
----
-
-## 🚀 Installation & Setup
-
-### Backend (Flask)
-```bash
-cd crop-recommendation-backend
-python -m venv venv
-# Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
-
-### Frontend (Streamlit)
-```bash
-cd crop-recommendation-frontend
-python -m venv venv
-# Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Backend** | Flask, SQLAlchemy, Pydantic, PyJWT, Bcrypt |
-| **Frontend** | Streamlit, Plotly, Multi-language Support |
-| **ML Engine** | Scikit-Learn, XGBoost, SHAP |
-| **Infrastructure** | Render (Blueprints), GitHub Actions, Gunicorn |
+- **Machine Learning:** Scikit-learn (Random Forest), XGBoost, SHAP (Explainability)
+- **Backend:** Flask, Flask-SQLAlchemy, PyJWT, Bcrypt, Pydantic
+- **Frontend:** Streamlit, Plotly (Localized in English, Hindi, Marathi)
+- **Database:** PostgreSQL (Cloud) / SQLite (Local)
+- **Deployment:** Render (Infrastructure-as-Code), Gunicorn
 
 ---
 
-## ☁️ One-Click Deployment
+## 📊 Machine Learning Pipeline
 
-This project includes a `render.yaml` blueprint for automated orchestration on **Render**:
+**Input Features:**
+- Soil: Nitrogen (N), Phosphorus (P), Potassium (K), pH
+- Climate: Temperature, Humidity, Rainfall
+- **Engineered**: NPK Ratios, THI (Climate Stress), GDD (Heat Units)
 
-1. Fork this repository.
-2. Connect to [Render](https://render.com).
-3. Select **New > Blueprint**.
-4. The system will automatically provision both Backend (Flask) and Frontend (Streamlit) services with cross-linked environment variables.
+**Pipeline:**
+- Preprocessing: `StandardScaler` for feature normalization.
+- Model: **Tuned Random Forest Classifier** (Cross-validated).
+- Explainability: **SHAP** values providing the top-3 factors for every prediction.
 
 ---
 
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🔐 Authentication & Security
 
-*Built with ❤️ for Sustainable Agriculture.*
+- **Stateless Auth**: JWT-based tokens with distinct Access and Refresh lifecycles.
+- **Data Protection**: Bcrypt password hashing and user-isolated history.
+- **Schema Defense**: Strict Pydantic input validation to prevent malformed requests.
+- **Audit Ready**: Request ID tracking for every API transaction.
+
+---
+
+## 📁 Project Structure
+
+```bash
+├── crop-recommendation-backend/   # Flask API Core
+│   ├── app.py                     # Entry point & Routes
+│   ├── auth_utils.py              # JWT & Security logic
+│   ├── models.py                  # Database Schemas
+│   ├── schemas.py                 # Pydantic Validation
+│   └── ml_models/                 # Model Artifacts (.pkl)
+├── crop-recommendation-frontend/  # Streamlit Dashboard
+│   ├── app.py                     # UI logic & State mgmt
+│   └── translations.py            # Multi-language support
+├── render.yaml                    # Cloud Orchestration (IaC)
+└── DOCUMENTATION.md               # Deep Technical Manual
+```
+
+---
+
+## ▶️ Run Locally
+
+```bash
+# 1. Setup Backend
+cd crop-recommendation-backend
+pip install -r requirements.txt
+python app.py
+
+# 2. Setup Frontend
+cd crop-recommendation-frontend
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+---
+
+## ☁️ Deployment
+
+* **Architecture**: Hosted as two separate services (API + UI) on Render.
+* **Orchestration**: Managed via `render.yaml` for one-click setup.
+* **Security**: SSL/TLS encryption for all data in transit.
+
+---
+
+## 🧪 Learning & Engineering Standards
+
+This project follows a **tiered upgrade path** to demonstrate senior-level maturity:
+1. **Explainable AI**: Moving from "Black Box" to SHAP-powered transparency.
+2. **Enterprise Security**: Implementing industry-standard JWT auth workflows.
+3. **API Rigor**: Versioned endpoints, health checks, and standardized error responses.
+4. **DevOps**: Infrastructure as Code and automated database migrations.
+
+---
+
+## 👨💻 Author
+
+**Pranav Waikar**  
+Engineering Student | Full-Stack & ML Specialist
+
+---
+
+⭐ If you find this project useful, feel free to star the repository!
