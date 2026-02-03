@@ -1,12 +1,20 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, Prediction
+from models import db, Prediction, User
 from utils import load_model, validate_input, prepare_input
 from explainability import CropExplainer
-from schemas import CropInput, PredictionResponse, HealthResponse
+from schemas import (
+    CropInput, PredictionResponse, HealthResponse,
+    UserRegister, UserLogin, UserResponse, TokenResponse, TokenRefresh
+)
+from auth_utils import (
+    token_required, generate_token, generate_refresh_token, 
+    verify_token, hash_password, verify_password
+)
 import os
 import logging
 import uuid
+import pickle
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from pydantic import ValidationError
@@ -52,8 +60,12 @@ os.makedirs(os.path.join(app.config.get('BASE_DIR'), 'instance'), exist_ok=True)
 os.makedirs(os.path.join(app.config.get('BASE_DIR'), 'ml_models'), exist_ok=True)
 
 db.init_app(app)
-with app.app_context():
-    db.create_all()
+# Optionally skip DB creation during imports/tests to avoid locking/permission issues
+if os.environ.get('SKIP_DB_INIT') == '1':
+    logger.info("⚠️ SKIP_DB_INIT=1 set — skipping automatic database creation on import")
+else:
+    with app.app_context():
+        db.create_all()
 
 # -------------------- LOAD MODEL (With Emergency Fallback) --------------------
 
@@ -87,7 +99,12 @@ def initialize_model():
         model_error = str(e)
         model, scaler = None, None
 
-initialize_model()
+# Allow skipping model initialization for fast test/import (set SKIP_MODEL_LOAD=1)
+if os.environ.get('SKIP_MODEL_LOAD') == '1':
+    logger.info("⚠️ SKIP_MODEL_LOAD=1 set — skipping ML model initialization for faster imports/tests")
+    model, scaler, model_error = None, None, None
+else:
+    initialize_model()
 
 # Initialize Explainer
 explainer = None
@@ -101,35 +118,39 @@ if model is not None:
 
 # -------------------- INIT DB --------------------
 
-with app.app_context():
-    if env != 'production':
-        os.makedirs(os.path.join(BASE_DIR, 'instance'), exist_ok=True)
-    db.create_all()
+if os.environ.get('SKIP_DB_INIT') == '1':
+    logger.info("⚠️ SKIP_DB_INIT=1 set — skipping secondary DB init/migration steps on import")
+else:
+    with app.app_context():
+        if env != 'production':
+            os.makedirs(os.path.join(app.config.get('BASE_DIR'), 'instance'), exist_ok=True)
+        db.create_all()
     
-    # --- Emergency Schema Migration (Add columns if missing) ---
-    try:
-        from sqlalchemy import text
-        # These are the new columns added in Upgrade 7
-        new_columns = [
-            ('request_id', 'VARCHAR(36)'),
-            ('confidence', 'FLOAT')
-        ]
-        
-        for col_name, col_type in new_columns:
-            try:
-                # Check if column exists
-                db.session.execute(text(f"SELECT {col_name} FROM predictions LIMIT 1"))
-            except Exception:
-                # If selection fails, column likely missing - attempt to add
-                db.session.rollback()
-                logger.warning(f"🔧 Schema Mismatch: Adding missing column [{col_name}] to [predictions] table")
-                db.session.execute(text(f"ALTER TABLE predictions ADD COLUMN {col_name} {col_type}"))
-                db.session.commit()
-                logger.info(f"✅ Successfully added column {col_name}")
-                
-    except Exception as e:
-        logger.error(f"⚠️ Auto-migration failed: {e}")
-        db.session.rollback()
+        # --- Emergency Schema Migration (Add columns if missing) ---
+        try:
+            from sqlalchemy import text
+            # These are the new columns added in previous upgrades
+            new_columns = [
+                ('request_id', 'VARCHAR(36)'),
+                ('confidence', 'FLOAT'),
+                ('user_id', 'INTEGER')  # JWT auth upgrade
+            ]
+            
+            for col_name, col_type in new_columns:
+                try:
+                    # Check if column exists
+                    db.session.execute(text(f"SELECT {col_name} FROM predictions LIMIT 1"))
+                except Exception:
+                    # If selection fails, column likely missing - attempt to add
+                    db.session.rollback()
+                    logger.warning(f"🔧 Schema Mismatch: Adding missing column [{col_name}] to [predictions] table")
+                    db.session.execute(text(f"ALTER TABLE predictions ADD COLUMN {col_name} {col_type}"))
+                    db.session.commit()
+                    logger.info(f"✅ Successfully added column {col_name}")
+                    
+        except Exception as e:
+            logger.error(f"⚠️ Auto-migration failed: {e}")
+            db.session.rollback()
 
     logger.info("✓ Database initialized and verified")
 
@@ -142,9 +163,14 @@ def home():
         "message": "Crop Recommendation API is running",
         "environment": env,
         "endpoints": {
-            "predict": "/predict [POST]",
-            "history": "/history [GET]",
-            "stats": "/stats [GET]"
+            "health": "/api/v1/health [GET]",
+            "register": "/api/v1/auth/register [POST]",
+            "login": "/api/v1/auth/login [POST]",
+            "me": "/api/v1/auth/me [GET] (Protected)",
+            "refresh": "/api/v1/auth/refresh [POST]",
+            "predict": "/api/v1/predict [POST] (Protected)",
+            "history": "/api/v1/history [GET] (Protected)",
+            "stats": "/api/v1/stats [GET] (Protected)"
         }
     })
 
@@ -158,10 +184,239 @@ def health() -> Any:
     )
     return jsonify(response_data.model_dump())
 
+
+# -------------------- AUTHENTICATION ROUTES --------------------
+
+@app.route("/api/v1/auth/register", methods=["POST"])
+def register() -> Any:
+    """Register a new user"""
+    try:
+        # Validate input
+        raw_data = request.get_json()
+        validated_data = UserRegister(**raw_data)
+        
+        # Check if user already exists
+        existing_user = User.query.filter(
+            (User.email == validated_data.email) | 
+            (User.username == validated_data.username)
+        ).first()
+        
+        if existing_user:
+            if existing_user.email == validated_data.email:
+                return jsonify({
+                    "status": "error",
+                    "error": "Email Already Registered",
+                    "message": "This email is already in use"
+                }), 409
+            else:
+                return jsonify({
+                    "status": "error",
+                    "error": "Username Already Taken",
+                    "message": "This username is already in use"
+                }), 409
+        
+        # Create new user
+        new_user = User(
+            email=validated_data.email,
+            username=validated_data.username
+        )
+        new_user.set_password(validated_data.password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        logger.info(f"✅ New user registered: {new_user.username}")
+        
+        # Generate tokens
+        access_token = generate_token(new_user.id, new_user.email)
+        refresh_token = generate_refresh_token(new_user.id, new_user.email)
+        
+        # Prepare response
+        user_data = UserResponse(**new_user.to_dict(include_predictions=True))
+        response = TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=app.config.get('JWT_ACCESS_TOKEN_EXPIRES', 3600),
+            user=user_data
+        )
+        
+        return jsonify(response.model_dump()), 201
+        
+    except ValidationError as v_err:
+        return jsonify({
+            "status": "error",
+            "error": "Validation Failed",
+            "details": v_err.errors()
+        }), 400
+    except Exception as e:
+        logger.error(f"❌ Registration error: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "status": "error",
+            "error": "Registration Failed",
+            "message": str(e)
+        }), 500
+
+
+@app.route("/api/v1/auth/login", methods=["POST"])
+def login() -> Any:
+    """Authenticate user and return tokens"""
+    try:
+        # Validate input
+        raw_data = request.get_json()
+        validated_data = UserLogin(**raw_data)
+        
+        # Find user by email or username
+        user = User.query.filter(
+            (User.email == validated_data.email) | 
+            (User.username == validated_data.email)
+        ).first()
+        
+        if not user:
+            return jsonify({
+                "status": "error",
+                "error": "Invalid Credentials",
+                "message": "Email/username or password is incorrect"
+            }), 401
+        
+        # Verify password
+        if not user.check_password(validated_data.password):
+            return jsonify({
+                "status": "error",
+                "error": "Invalid Credentials",
+                "message": "Email/username or password is incorrect"
+            }), 401
+        
+        # Check if account is active
+        if not user.is_active:
+            return jsonify({
+                "status": "error",
+                "error": "Account Disabled",
+                "message": "Your account has been disabled"
+            }), 403
+        
+        # Update last login
+        user.update_last_login()
+        db.session.commit()
+        
+        logger.info(f"✅ User logged in: {user.username}")
+        
+        # Generate tokens
+        access_token = generate_token(user.id, user.email)
+        refresh_token = generate_refresh_token(user.id, user.email)
+        
+        # Prepare response
+        user_data = UserResponse(**user.to_dict(include_predictions=True))
+        response = TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=app.config.get('JWT_ACCESS_TOKEN_EXPIRES', 3600),
+            user=user_data
+        )
+        
+        return jsonify(response.model_dump()), 200
+        
+    except ValidationError as v_err:
+        return jsonify({
+            "status": "error",
+            "error": "Validation Failed",
+            "details": v_err.errors()
+        }), 400
+    except Exception as e:
+        logger.error(f"❌ Login error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "error": "Login Failed",
+            "message": str(e)
+        }), 500
+
+
+@app.route("/api/v1/auth/me", methods=["GET"])
+@token_required
+def get_current_user(current_user: Dict[str, Any]) -> Any:
+    """Get current user profile"""
+    try:
+        user = User.query.get(current_user['user_id'])
+        
+        if not user:
+            return jsonify({
+                "status": "error",
+                "error": "User Not Found",
+                "message": "User account no longer exists"
+            }), 404
+        
+        user_data = UserResponse(**user.to_dict(include_predictions=True))
+        return jsonify({
+            "status": "success",
+            "user": user_data.model_dump()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"❌ Get user error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "error": "Failed to Retrieve User",
+            "message": str(e)
+        }), 500
+
+
+@app.route("/api/v1/auth/refresh", methods=["POST"])
+def refresh_token_endpoint() -> Any:
+    """Refresh access token using refresh token"""
+    try:
+        raw_data = request.get_json()
+        validated_data = TokenRefresh(**raw_data)
+        
+        # Verify refresh token
+        payload = verify_token(validated_data.refresh_token, token_type='refresh')
+        
+        if not payload:
+            return jsonify({
+                "status": "error",
+                "error": "Invalid Refresh Token",
+                "message": "Refresh token is invalid or expired"
+            }), 401
+        
+        # Get user
+        user = User.query.get(payload['user_id'])
+        
+        if not user or not user.is_active:
+            return jsonify({
+                "status": "error",
+                "error": "Invalid User",
+                "message": "User account is invalid or disabled"
+            }), 401
+        
+        # Generate new access token
+        new_access_token = generate_token(user.id, user.email)
+        
+        return jsonify({
+            "status": "success",
+            "access_token": new_access_token,
+            "token_type": "Bearer",
+            "expires_in": app.config.get('JWT_ACCESS_TOKEN_EXPIRES', 3600)
+        }), 200
+        
+    except ValidationError as v_err:
+        return jsonify({
+            "status": "error",
+            "error": "Validation Failed",
+            "details": v_err.errors()
+        }), 400
+    except Exception as e:
+        logger.error(f"❌ Token refresh error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "error": "Token Refresh Failed",
+            "message": str(e)
+        }), 500
+
 @app.route("/api/v1/predict", methods=["POST"])
-def predict() -> Any:
+@token_required
+def predict(current_user: Dict[str, Any]) -> Any:
     """
     Core prediction engine utilizing Pydantic for strict schema validation.
+    Protected route - requires authentication.
     """
     request_id = str(uuid.uuid4())
     try:
@@ -221,6 +476,7 @@ def predict() -> Any:
         # 4. Persistence
         try:
             new_prediction = Prediction(
+                user_id=current_user['user_id'],  # Associate with authenticated user
                 nitrogen=data['N'],
                 phosphorus=data['P'],
                 potassium=data['K'],
@@ -234,7 +490,7 @@ def predict() -> Any:
             )
             db.session.add(new_prediction)
             db.session.commit()
-            logger.info(f"[{request_id}] Result saved to database")
+            logger.info(f"[{request_id}] Result saved to database for user {current_user['user_id']}")
         except Exception as db_err:
             logger.warning(f"[{request_id}] Database save failed: {db_err}")
             db.session.rollback()
@@ -275,11 +531,16 @@ def predict() -> Any:
 
 
 @app.route('/api/v1/history', methods=['GET'])
-def history() -> Any:
-    """Fetch prediction history with type hints"""
+@token_required
+def history(current_user: Dict[str, Any]) -> Any:
+    """Fetch prediction history for authenticated user"""
     try:
         limit = request.args.get('limit', 10, type=int)
-        records = Prediction.query.order_by(
+        
+        # Filter predictions by current user
+        records = Prediction.query.filter_by(
+            user_id=current_user['user_id']
+        ).order_by(
             Prediction.created_at.desc()
         ).limit(limit).all()
 
@@ -290,6 +551,7 @@ def history() -> Any:
                 {
                     "id": r.id,
                     "predicted_crop": r.predicted_crop,
+                    "confidence": r.confidence,
                     "created_at": r.created_at.isoformat(),
                     "input": {
                         "N": r.nitrogen,
@@ -314,16 +576,20 @@ def history() -> Any:
 
 
 @app.route('/api/v1/stats', methods=['GET'])
-def stats() -> Any:
-    """Fetch system stats with type hints"""
+@token_required
+def stats(current_user: Dict[str, Any]) -> Any:
+    """Fetch system stats for authenticated user"""
     try:
         from sqlalchemy import func
 
-        total = Prediction.query.count()
+        # Filter by current user
+        total = Prediction.query.filter_by(user_id=current_user['user_id']).count()
 
         crop_counts = db.session.query(
             Prediction.predicted_crop,
             func.count(Prediction.id)
+        ).filter_by(
+            user_id=current_user['user_id']
         ).group_by(Prediction.predicted_crop).all()
 
         return jsonify({

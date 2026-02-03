@@ -1,7 +1,10 @@
 # Virtual environments
 venv/
+.venv/
 crop-recommendation-backend/venv/
+crop-recommendation-backend/.venv/
 crop-recommendation-frontend/venv/
+crop-recommendation-frontend/.venv/
 
 # Python
 __pycache__/

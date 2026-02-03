@@ -46,8 +46,8 @@ def train_and_save_model():
     with open(scaler_path, 'wb') as f:
         pickle.dump(scaler, f)
 
-    print(f"✓ Model saved to {model_path}")
-    print(f"✓ Scaler saved to {scaler_path}")
+    print(f"Model saved to {model_path}")
+    print(f"Scaler saved to {scaler_path}")
     
     # Save the feature names for reference in utils.py
     feature_names = X_engineered.columns.tolist()
