@@ -5,7 +5,8 @@ from datetime import datetime
 import os
 from utils import (
     call_prediction_api, get_history, get_stats, 
-    get_model_comparison, get_ml_maturity_report
+    get_model_comparison, get_ml_maturity_report,
+    login_user, register_user
 )
 
 # ==================== PAGE CONFIG ====================
@@ -16,9 +17,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==================== CONFIGURATION ====================
 # Change this to your deployed Flask API URL
 API_BASE_URL = os.environ.get('API_URL', "http://localhost:5000")
+
+# ==================== SESSION STATE ====================
+if 'token' not in st.session_state:
+    st.session_state.token = None
+if 'user' not in st.session_state:
+    st.session_state.user = None
+if 'auth_mode' not in st.session_state:
+    st.session_state.auth_mode = "Login"
 
 # ==================== CUSTOM CSS ====================
 st.markdown("""
@@ -76,6 +84,47 @@ st.markdown('<div class="sub-header">AI-Powered Agricultural Decision Support</d
 # ==================== SIDEBAR ====================
 with st.sidebar:
     st.image("https://img.icons8.com/fluency/96/000000/farm.png", width=80)
+    
+    # --- Authentication Section ---
+    if not st.session_state.token:
+        st.title("🔐 Authentication")
+        auth_choice = st.radio("Choose Mode", ["Login", "Register"], label_visibility="collapsed")
+        
+        if auth_choice == "Login":
+            with st.form("login_form"):
+                email = st.text_input("Email/Username")
+                password = st.text_input("Password", type="password")
+                if st.form_submit_button("Login", use_container_width=True):
+                    status, res = login_user(API_BASE_URL, email, password)
+                    if status == 200:
+                        st.session_state.token = res['access_token']
+                        st.session_state.user = res['user']
+                        st.success("✅ Logged in!")
+                        st.rerun()
+                    else:
+                        st.error(res.get('message', 'Login failed'))
+        else:
+            with st.form("reg_form"):
+                email = st.text_input("Email")
+                username = st.text_input("Username")
+                password = st.text_input("Password", type="password")
+                if st.form_submit_button("Register", use_container_width=True):
+                    status, res = register_user(API_BASE_URL, email, username, password)
+                    if status == 201:
+                        st.session_state.token = res['access_token']
+                        st.session_state.user = res['user']
+                        st.success("✅ Registered!")
+                        st.rerun()
+                    else:
+                        st.error(res.get('message', 'Registration failed'))
+    else:
+        st.title(f"👋 Welcome, {st.session_state.user['username']}")
+        if st.button("🚪 Logout", use_container_width=True):
+            st.session_state.token = None
+            st.session_state.user = None
+            st.rerun()
+
+    st.markdown("---")
     st.title("Navigation")
     
     page = st.radio(
@@ -91,8 +140,8 @@ with st.sidebar:
     # Check API health
     try:
         import requests
-        response = requests.get(f"{API_BASE_URL}/", timeout=3)
-        if response.status_code == 200 and response.json().get('status') == 'success':
+        response = requests.get(f"{API_BASE_URL}/api/v1/health", timeout=3)
+        if response.status_code == 200:
             api_status_placeholder.success("✓ API Connected")
         else:
             api_status_placeholder.warning("⚠ API Responding (Check Config)")
@@ -101,6 +150,11 @@ with st.sidebar:
 
 # ==================== PAGE 1: PREDICTION ====================
 if page == "🏠 Make Prediction":
+    if not st.session_state.token:
+        st.warning("🔒 Authentication Required")
+        st.info("Please login or register from the sidebar to access the prediction engine.")
+        st.stop()
+        
     st.header("Enter Farm Parameters")
     
     # Create tabs for better organization
@@ -318,7 +372,7 @@ if page == "🏠 Make Prediction":
             }
             
             # Call API
-            result = call_prediction_api(f"{API_BASE_URL}/api/v1/predict", payload)
+            result = call_prediction_api(f"{API_BASE_URL}/api/v1/predict", payload, st.session_state.token)
             
             if result and result.get('status') == 'success':
                 crop = result['predicted_crop']
@@ -420,11 +474,16 @@ if page == "🏠 Make Prediction":
 
 # ==================== PAGE 2: HISTORY & ANALYTICS ====================
 elif page == "📊 History & Analytics":
+    if not st.session_state.token:
+        st.warning("🔒 Authentication Required")
+        st.info("Please login to view your prediction history and analytics.")
+        st.stop()
+        
     st.header("Prediction History & Statistics")
     
     # Fetch data
-    stats_data = get_stats(API_BASE_URL)
-    history_data = get_history(API_BASE_URL, limit=20)
+    stats_data = get_stats(API_BASE_URL, st.session_state.token)
+    history_data = get_history(API_BASE_URL, st.session_state.token, limit=20)
     
     # Access stats data correctly
     if stats_data and stats_data.get('status') == 'success':

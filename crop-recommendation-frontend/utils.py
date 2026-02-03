@@ -1,18 +1,25 @@
 import requests
 import streamlit as st
 
-def call_prediction_api(url, payload):
+def call_prediction_api(url, payload, token=None):
     """Call the prediction API endpoint"""
     try:
+        headers = {'Content-Type': 'application/json'}
+        if token:
+            headers['Authorization'] = f"Bearer {token}"
+            
         response = requests.post(
             url,
             json=payload,
-            headers={'Content-Type': 'application/json'},
+            headers=headers,
             timeout=10
         )
         
-        if response.status_code == 200:
+        if response.status_code in [200, 201]:
             return response.json()
+        elif response.status_code == 401:
+            st.warning("🔑 Session expired or unauthorized. Please login again.")
+            return {"status": "error", "error": "Unauthorized"}
         else:
             st.error(f"API Error: {response.status_code}")
             try:
@@ -30,70 +37,82 @@ def call_prediction_api(url, payload):
         st.error(f"❌ Error: {str(e)}")
         return None
 
-def get_history(base_url, limit=10):
+def get_history(base_url, token, limit=10):
     """Fetch prediction history from API"""
     try:
+        headers = {}
+        if token:
+            headers['Authorization'] = f"Bearer {token}"
+            
         response = requests.get(
             f"{base_url}/api/v1/history?limit={limit}",
+            headers=headers,
             timeout=10
         )
         
         if response.status_code == 200:
             return response.json()
-        else:
-            return None
+        return None
     
     except Exception as e:
         st.error(f"Error fetching history: {str(e)}")
         return None
 
-def get_stats(base_url):
+def get_stats(base_url, token):
     """Fetch statistics from API"""
     try:
-        # Use versioned API
+        headers = {}
+        if token:
+            headers['Authorization'] = f"Bearer {token}"
+            
         response = requests.get(
             f"{base_url}/api/v1/stats",
+            headers=headers,
             timeout=10
         )
         
         if response.status_code == 200:
             return response.json()
-        else:
-            return None
+        return None
     
     except Exception as e:
         st.error(f"Error fetching stats: {str(e)}")
         return None
 
-def get_model_comparison(base_url):
-    """Fetch model comparison results from API"""
+def login_user(base_url, email, password):
+    """Authenticate user"""
     try:
-        response = requests.get(
-            f"{base_url}/api/v1/model-comparison",
-            timeout=30  # Longer timeout for training if needed
+        response = requests.post(
+            f"{base_url}/api/v1/auth/login",
+            json={"email": email, "password": password},
+            timeout=10
         )
-        
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return None
-    
+        return response.status_code, response.json()
     except Exception as e:
-        st.error(f"Error fetching model comparison: {str(e)}")
-        return None
+        return 500, {"error": str(e)}
+
+def register_user(base_url, email, username, password):
+    """Register new user"""
+    try:
+        response = requests.post(
+            f"{base_url}/api/v1/auth/register",
+            json={"email": email, "username": username, "password": password},
+            timeout=10
+        )
+        return response.status_code, response.json()
+    except Exception as e:
+        return 500, {"error": str(e)}
+
+def get_model_comparison(base_url):
+    # (Remains public for now as in backend)
+    try:
+        response = requests.get(f"{base_url}/api/v1/model-comparison", timeout=30)
+        return response.json() if response.status_code == 200 else None
+    except: return None
 
 def get_ml_maturity_report(base_url):
-    """Fetch advanced ML maturity report from API"""
+    # (Remains public for now as in backend)
     try:
-        response = requests.get(
-            f"{base_url}/api/v1/ml-maturity-report",
-            timeout=120  # Tuning can take time
-        )
-        
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return None
-    except Exception as e:
-        st.error(f"Error fetching maturity report: {str(e)}")
-        return None
+        response = requests.get(f"{base_url}/api/v1/ml-maturity-report", timeout=120)
+        return response.json() if response.status_code == 200 else None
+    except: return None
