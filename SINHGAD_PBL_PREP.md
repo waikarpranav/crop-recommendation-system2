@@ -53,5 +53,8 @@ This guide is tailored for your **Project Based Learning (PBL)** submission and 
 *   **Social Impact**: Directly aids in "Goal 2: Zero Hunger" by optimizing crop yields for local farmers in Maharashtra.
 *   **Novelty**: Most student projects end at accuracy; this project adds **Transparency (SHAP)** and **Enterprise Security (JWT)**.
 
+### 11. How do you verify the system works (Testing)?
+*   **Answer**: "I've implemented a suite of **automated tests using `unittest`** in the `tests/test_basics.py` file. These tests verify the entire pipeline: from health checks and user registration to authenticated prediction requests. This ensures that any changes to the code don't break the existing core functionality."
+
 ---
 **Ready for the Viva? You've got this! 👊**

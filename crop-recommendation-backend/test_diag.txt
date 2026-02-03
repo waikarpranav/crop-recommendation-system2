@@ -1,0 +1,179 @@
+python : 2026-02-04 
+01:35:39,128 [INFO] 
+\U0001f680 Starting 
+App in [development] 
+mode
+At line:1 char:22
++ ... ONPATH="."; 
+python -m unittest te
+sts.test_basics.Basic
+Tests.test_4_pr ...
++                 ~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (2026-02   
+ -04 01:3...velop    
+ment] mode:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+2026-02-04 
+01:35:39,201 [ERROR] 
+\u274c Critical 
+startup error: 
+'charmap' codec 
+can't encode 
+character 
+'\U0001f50d' in 
+position 0: 
+character maps to 
+<undefined>
+2026-02-04 
+01:35:39,203 [INFO] 
+\u2713 Database 
+initialized and 
+verified
+C:\Users\Pranav\AppDa
+ta\Local\Python\pytho
+ncore-3.14-64\Lib\sit
+e-packages\sqlalchemy
+\sql\schema.py:3624: 
+DeprecationWarning: d
+atetime.datetime.utcn
+ow() is deprecated 
+and scheduled for 
+removal in a future 
+version. Use 
+timezone-aware 
+objects to represent 
+datetimes in UTC: dat
+etime.datetime.now(da
+tetime.UTC).
+  return util.wrap_ca
+llable(lambda ctx: 
+fn(), fn)  # type: 
+ignore
+2026-02-04 
+01:35:39,242 [INFO] 
+\u2705 New user 
+registered: farmer1
+E:\PROJECTS\full 
+stack project\crop-re
+commendation-backend\
+auth_utils.py:79: 
+DeprecationWarning: d
+atetime.datetime.utcn
+ow() is deprecated 
+and scheduled for 
+removal in a future 
+version. Use 
+timezone-aware 
+objects to represent 
+datetimes in UTC: dat
+etime.datetime.now(da
+tetime.UTC).
+  'exp': 
+datetime.utcnow() + t
+imedelta(seconds=expi
+res_delta),
+E:\PROJECTS\full 
+stack project\crop-re
+commendation-backend\
+auth_utils.py:80: 
+DeprecationWarning: d
+atetime.datetime.utcn
+ow() is deprecated 
+and scheduled for 
+removal in a future 
+version. Use 
+timezone-aware 
+objects to represent 
+datetimes in UTC: dat
+etime.datetime.now(da
+tetime.UTC).
+  'iat': 
+datetime.utcnow()
+E:\PROJECTS\full 
+stack project\crop-re
+commendation-backend\
+models.py:37: 
+DeprecationWarning: d
+atetime.datetime.utcn
+ow() is deprecated 
+and scheduled for 
+removal in a future 
+version. Use 
+timezone-aware 
+objects to represent 
+datetimes in UTC: dat
+etime.datetime.now(da
+tetime.UTC).
+  self.last_login = 
+datetime.utcnow()
+2026-02-04 
+01:35:39,280 [INFO] 
+\u2705 User logged 
+in: farmer1
+F
+=====================
+=====================
+=====================
+=======
+FAIL: 
+test_4_prediction (te
+sts.test_basics.Basic
+Tests.test_4_predicti
+on)
+Verify an 
+authenticated user 
+can get a prediction.
+---------------------
+---------------------
+---------------------
+-------
+Traceback (most 
+recent call last):
+  File 
+"E:\PROJECTS\full 
+stack project\crop-re
+commendation-backend\
+tests\test_basics.py"
+, line 87, in 
+test_4_prediction
+    self.assertEqual(
+response.status_code,
+ 200)
+    ~~~~~~~~~~~~~~~~^
+^^^^^^^^^^^^^^^^^^^^^
+^^^^^
+AssertionError: 500 
+!= 200
+
+---------------------
+---------------------
+---------------------
+-------
+Ran 1 test in 0.087s
+
+FAILED (failures=1)
+FAILURE_START
+{
+  "details": "Model not initialized. Startup error: 'charmap' codec can't encode character '\\U0001f50d' in position 0: character maps to <undefined>",
+  "error": "ML Integrity Check Failed",
+  "request_id": "fe264539-8e59-4f94-9ff2-23bedb28c365",
+  "status": "error"
+}
+
+FAILURE_END
+<sys>:0: 
+ResourceWarning: 
+unclosed database in 
+<sqlite3.Connection 
+object at 
+0x000001EB9A3AEC50>

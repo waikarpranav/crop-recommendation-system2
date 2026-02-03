@@ -1,0 +1,6 @@
+{
+  "details": "'DecisionTreeClassifier' object has no attribute 'monotonic_cst'",
+  "error": "Internal Server Error",
+  "request_id": "5e9c2b40-945d-4981-8f25-85f4649d0f5b",
+  "status": "error"
+}
