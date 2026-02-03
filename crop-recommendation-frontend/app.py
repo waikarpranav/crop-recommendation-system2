@@ -12,7 +12,7 @@ from translations import TRANSLATIONS
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title=T["title"],
+    page_title="Smart Crop Recommendation System",
     page_icon="🌾",
     layout="wide",
     initial_sidebar_state="expanded"
