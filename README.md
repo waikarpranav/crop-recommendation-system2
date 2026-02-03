@@ -2,72 +2,17 @@
 
 Advanced AI-powered Decision Support System (DSS) for precision agriculture.
 
-## 🚀 The Upgrade Journey: From Prototype to Production
+---
 
-This project evolved through a structured 7-tier upgrade process to reach professional industry standards.
+## 📖 Project Documentation
 
-### 🧬 Tier 1: Advanced Feature Engineering
-*   **Domain Intelligence**: Added agricultural features like **NPK Ratio**, **Nutrient Balance**, and **Water Stress Index**.
-*   **Climate Logic**: Implemented **Growing Degree Days (GDD)** and **Temperature-Humidity Index (THI)**.
-*   **Impact**: Increased model precision by providing richer context for soil-climate interactions.
-
-### 🔬 Tier 2: Model Comparison Pipeline
-*   **Multi-Algorithm Testing**: Automated evaluation of **Random Forest, XGBoost, SVM, Naive Bayes, and Logistic Regression**.
-*   **Systematic Selection**: The system mathematically identifies the top-performing algorithm using 5-fold cross-validation.
-
-### 🔍 Tier 3: Explainability (SHAP) - The Trust Layer
-*   **Transparent AI**: Integrated **SHAP (SHapley Additive exPlanations)** to provide top-3 reasons for every prediction.
-*   **Performance Optimization**: Implemented **Lazy-Loading** to ensure high-memory AI libraries don't crash the server on limited hardware.
-
-### ⚖️ Tier 4: Confidence & Alternatives
-*   **Uncertainty Quantification**: Added **Confidence Percentage** badges (0-100%).
-*   **Fallback Logic**: Provides up to 3 **Alternative Recommendations** if the primary match isn't perfect.
-*   **Suitability Ranking**: Categorizes crops into High, Moderate, and Low suitability matches.
-
-### 🌐 Tier 11: Multi-language Support (Localization)
-*   **Regional Accessibility**: Implemented a full localization system for **English**, **Hindi**, and **Marathi**.
-*   **Dynamic UI**: All headers, labels, and feedback messages adapt instantly based on user selection.
-*   **Inclusivity**: Ensures local farmers can interact with the AI system in their native language.
-
-### 🛡️ Tier 5: Production-Ready API Design
-*   **Architectural Rigor**: Implemented **UUID Request IDs** for enterprise-grade troubleshooting.
-*   **Centralized Logging**: Real-time monitoring of API traffic, validation failures, and server health.
-*   **Robust Validation**: Multi-error feedback loops with strict agricultural domain constraints.
-
-### 📊 Tier 6: Scientific Maturity
-*   **Hyperparameter Tuning**: Used **RandomizedSearchCV** to find mathematically optimal model settings.
-*   **Advanced Analytics**: Deep insights into model performance through **Confusion Matrices** and **Feature Importance** distributions.
-*   **Stability**: 5-fold cross-validation reporting to prevent overfitting and ensure generalization.
-
-### 🏁 Tier 7: Production-Readiness Signals (Final Finish)
-*   **API Versioning**: Standardized on `/api/v1/` for professional, future-proof releases.
-*   **Health Heartbeat**: Implemented `/api/v1/health` for real-time monitoring of model loading and system health.
-*   **Deep Data Capture**: The database now tracks every **Request ID** and **Confidence Score** for advanced auditing.
-*   **Security & Sanitization**: Strict input cleaning to ensure system resilience and data integrity.
-
-### 🛡️ Tier 9: JWT Authentication & User Management
-*   **Secure Access**: Implemented a full-stack authentication system using **JWT (JSON Web Tokens)**.
-*   **Bcrypt Security**: Industry-standard password hashing with salt.
-*   **Session Management**: State-aware frontend that securely stores and attaches tokens to API requests.
-*   **Data Isolation**: Users only see their own prediction history and statistics.
-
-### 🏗️ Tier 10: Infrastructure as Code (Blueprint Deployment)
-*   **One-Click Deployment**: Added `render.yaml` to orchestrate both backend and frontend services simultaneously.
-*   **Automated CI/CD**: Seamless deployment from GitHub with automatic database schema migrations.
-*   **Service Orchestration**: Automatic linkage between Frontend and Backend URLs via environment variables.
+This repository contains a full-stack implementation of a Crop Recommendation System. For a deep dive into the architecture, security, and machine learning pipeline, please see the **[Professional Documentation Guide](file:///e:/PROJECTS/full%20stack%20project/DOCUMENTATION.md)**.
 
 ---
 
-## 🛠️ Tech Stack
-*   **Backend**: Flask (Python), PostgreSQL, SQLAlchemy, **PyJWT**, **Bcrypt**
-*   **Frontend**: Streamlit, **Session State Management**
-*   **Machine Learning**: Scikit-Learn, XGBoost
-*   **Explainability**: SHAP
-*   **DevOps**: **Render (Blueprints)**, GitHub Actions, Git, Professional Logging
+## 🚀 Quick Start
 
-## 🏃 Quick Start
-
-### 1. Backend Setup
+### 1. Backend Setup (Flask)
 ```bash
 cd crop-recommendation-backend
 python -m venv venv
@@ -76,7 +21,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-### 2. Frontend Setup
+### 2. Frontend Setup (Streamlit)
 ```bash
 cd crop-recommendation-frontend
 python -m venv venv
@@ -85,54 +30,23 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## 🛠️ Developer Toolbox (Admin Commands)
+---
 
-Use these commands to maintain, retrain, or evaluate the system locally.
+## 🏗️ Technical Highlights
 
-### 🧠 Model Management
-| Task | Command | Description |
-| :--- | :--- | :--- |
-| **Retrain Model** | `python train_model.py` | Rebuilds the model and scaler from scratch. |
-| **Deep Evaluation** | `python evaluate_model.py` | Generates the advanced maturity report & metrics. |
-| **Algorithm Test** | `python model_comparison.py` | Compares RF, XGBoost, SVM, etc. |
-
-### 🔍 System Maintenance
-| Task | Command | Description |
-| :--- | :--- | :--- |
-| **Check Env** | `pip freeze` | Verify local library versions (NumPy, Scikit-learn). |
-| **Reset DB** | `Remove-Item instance/predictions.db` | (Windows) Deletes local history for a fresh start. |
-| **Git Push** | `git add . ; git commit -m "Update" ; git push` | Deploy local changes to live server. |
-
-### 🏥 API Verification
-| Endpoint | Method | Purpose |
-| :--- | :--- | :--- |
-| `/api/v1/health` | `GET` | Verify if model/scaler loaded correctly. |
-| `/api/v1/predict` | `POST` | Test prediction with JSON payload. |
-
-## ☁️ Cloud Deployment Guide
-
-Follow these steps to host your system live on the web.
-
-### 🔌 Backend (Render.com)
-1. **New Web Service**: Connect your GitHub repository.
-2. **Root Directory**: `crop-recommendation-backend`
-3. **Build Command**: `pip install -r requirements.txt`
-4. **Start Command**: `gunicorn app:app`
-5. **Environment Variables**:
-   - `FLASK_ENV`: `production`
-   - `DATABASE_URL`: Your PostgreSQL URL (Render provides this).
-   - `PYTHON_VERSION`: `3.10.0` or higher.
-
-### 🎨 Frontend (Streamlit Community Cloud)
-1. **Deploy app**: Connect your GitHub repository.
-2. **Main file path**: `crop-recommendation-frontend/app.py`
-3. **Advanced Settings**:
-   - Ensure the `API_BASE_URL` in your frontend matches your live Render URL.
-
-
-
-## 📈 Model Insights
-The system currently utilizes a **Tuned Random Forest** model achieving over **99% test accuracy**, validated by advanced confusion matrix analysis and cross-validation reports.
+- **Multi-Algorithm Comparison**: Automated validation of RF, XGBoost, SVM, and more.
+- **Explainable AI (XAI)**: SHAP-powered reasoning to explain *why* a crop was recommended.
+- **Stateless Auth**: Secure JWT (JSON Web Token) access and refresh token strategy.
+- **Domain Engineering**: Custom feature calculation (THI, GDD, NPK ratios).
+- **Internationalization**: Full support for English, Hindi, and Marathi.
 
 ---
-**Build with ❤️ for Sustainable Agriculture.**
+
+## 🛠️ Tech Stack
+*   **Backend**: Flask, SQLAlchemy, Pydantic, PyJWT, Bcrypt
+*   **Frontend**: Streamlit, Plotly, Multi-language Support
+*   **Machine Learning**: Scikit-Learn, XGBoost, SHAP
+*   **DevOps**: Render (Infrastructure-as-Code), GitHub Actions
+
+---
+*Built with ❤️ for Sustainable Agriculture.*
