@@ -8,10 +8,11 @@ from utils import (
     get_model_comparison, get_ml_maturity_report,
     login_user, register_user
 )
+from translations import TRANSLATIONS
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title="Crop Recommendation System",
+    page_title=T["title"],
     page_icon="🌾",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -27,6 +28,10 @@ if 'user' not in st.session_state:
     st.session_state.user = None
 if 'auth_mode' not in st.session_state:
     st.session_state.auth_mode = "Login"
+if 'lang' not in st.session_state:
+    st.session_state.lang = "English"
+
+T = TRANSLATIONS[st.session_state.lang]
 
 # ==================== CUSTOM CSS ====================
 st.markdown("""
@@ -78,28 +83,38 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================== HEADER ====================
-st.markdown('<div class="main-header">🌾 Smart Crop Recommendation System</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">AI-Powered Agricultural Decision Support</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="main-header">{T["title"]}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="sub-header">{T["subtitle"]}</div>', unsafe_allow_html=True)
 
 # ==================== SIDEBAR ====================
 with st.sidebar:
     st.image("https://img.icons8.com/fluency/96/000000/farm.png", width=80)
     
+    # Language Selector
+    st.markdown("### 🌐 Language")
+    st.session_state.lang = st.selectbox(
+        "Select Language", 
+        ["English", "Hindi", "Marathi"], 
+        index=["English", "Hindi", "Marathi"].index(st.session_state.lang),
+        label_visibility="collapsed"
+    )
+    T = TRANSLATIONS[st.session_state.lang]
+    
     # --- Authentication Section ---
     if not st.session_state.token:
-        st.title("🔐 Authentication")
-        auth_choice = st.radio("Choose Mode", ["Login", "Register"], label_visibility="collapsed")
+        st.title(T["auth_title"])
+        auth_choice = st.radio("Choose Mode", [T["login"], T["register"]], label_visibility="collapsed")
         
-        if auth_choice == "Login":
+        if auth_choice == T["login"]:
             with st.form("login_form"):
                 email = st.text_input("Email/Username")
                 password = st.text_input("Password", type="password")
-                if st.form_submit_button("Login", use_container_width=True):
+                if st.form_submit_button(T["login"], use_container_width=True):
                     status, res = login_user(API_BASE_URL, email, password)
                     if status == 200:
                         st.session_state.token = res['access_token']
                         st.session_state.user = res['user']
-                        st.success("✅ Logged in!")
+                        st.success(f"✅ {T['login']} Successful!")
                         st.rerun()
                     else:
                         st.error(res.get('message', 'Login failed'))
@@ -108,12 +123,12 @@ with st.sidebar:
                 email = st.text_input("Email")
                 username = st.text_input("Username")
                 password = st.text_input("Password", type="password")
-                if st.form_submit_button("Register", use_container_width=True):
+                if st.form_submit_button(T["register"], use_container_width=True):
                     status, res = register_user(API_BASE_URL, email, username, password)
                     if status == 201:
                         st.session_state.token = res['access_token']
                         st.session_state.user = res['user']
-                        st.success("✅ Registered!")
+                        st.success(f"✅ {T['register']} Successful!")
                         st.rerun()
                     else:
                         error_msg = res.get('message')
@@ -122,23 +137,24 @@ with st.sidebar:
                             error_msg = ", ".join([f"{e.get('msg')} ({e.get('loc')[-1]})" for e in res['details']])
                         st.error(error_msg or res.get('error') or 'Registration failed')
     else:
-        st.title(f"👋 Welcome, {st.session_state.user['username']}")
-        if st.button("🚪 Logout", use_container_width=True):
+        st.title(f"{T['welcome']}, {st.session_state.user['username']}")
+        if st.button(T["logout"], use_container_width=True):
             st.session_state.token = None
             st.session_state.user = None
             st.rerun()
 
     st.markdown("---")
-    st.title("Navigation")
+    st.title(T["nav_title"])
     
     page = st.radio(
-        "Select Page",
-        ["🏠 Make Prediction", "📊 History & Analytics", "🔬 Model Comparison", "ℹ️ About"]
+        T["nav_title"],
+        [T["page_predict"], T["page_history"], T["page_comparison"], T["page_about"]],
+        label_visibility="collapsed"
     )
     
     st.markdown("---")
-    st.markdown("### API Configuration")
-    st.info(f"**API URL:** {API_BASE_URL}")
+    st.markdown(f"### {T['api_config']}")
+    st.info(f"**{T['api_url']}:** {API_BASE_URL}")
     api_status_placeholder = st.empty()
     
     # Check API health
@@ -146,33 +162,33 @@ with st.sidebar:
         import requests
         response = requests.get(f"{API_BASE_URL}/api/v1/health", timeout=3)
         if response.status_code == 200:
-            api_status_placeholder.success("✓ API Connected")
+            api_status_placeholder.success(T["api_connected"])
         else:
-            api_status_placeholder.warning("⚠ API Responding (Check Config)")
+            api_status_placeholder.warning(T["api_responding"])
     except Exception as e:
-        api_status_placeholder.error(f"✗ API Offline")
+        api_status_placeholder.error(T["api_offline"])
 
 # ==================== PAGE 1: PREDICTION ====================
-if page == "🏠 Make Prediction":
+if page == T["page_predict"]:
     if not st.session_state.token:
-        st.warning("🔒 Authentication Required")
-        st.info("Please login or register from the sidebar to access the prediction engine.")
+        st.warning(T["auth_required"])
+        st.info(T["auth_info"])
         st.stop()
         
-    st.header("Enter Farm Parameters")
+    st.header(T["enter_params"])
     
     # Create tabs for better organization
-    tab1, tab2 = st.tabs(["📊 Use Sliders", "⌨️ Manual Input"])
+    tab1, tab2 = st.tabs([T["use_sliders"], T["manual_input"]])
     
     with tab1:
-        st.markdown("### Adjust parameters using sliders")
+        st.markdown(f"### {T['use_sliders']}")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown("#### 🌱 Soil Nutrients (kg/ha)")
+            st.markdown(f"#### {T['soil_nutrients']}")
             nitrogen = st.slider(
-                "Nitrogen (N)",
+                T["nitrogen"],
                 min_value=0.0,
                 max_value=140.0,
                 value=90.0,
@@ -182,7 +198,7 @@ if page == "🏠 Make Prediction":
             st.caption(f"Selected: **{nitrogen} kg/ha**")
             
             phosphorus = st.slider(
-                "Phosphorus (P)",
+                T["phosphorus"],
                 min_value=5.0,
                 max_value=145.0,
                 value=42.0,
@@ -192,7 +208,7 @@ if page == "🏠 Make Prediction":
             st.caption(f"Selected: **{phosphorus} kg/ha**")
             
             potassium = st.slider(
-                "Potassium (K)",
+                T["potassium"],
                 min_value=5.0,
                 max_value=205.0,
                 value=43.0,
@@ -202,9 +218,9 @@ if page == "🏠 Make Prediction":
             st.caption(f"Selected: **{potassium} kg/ha**")
         
         with col2:
-            st.markdown("#### 🌡️ Climate Conditions")
+            st.markdown(f"#### {T['climate_cond']}")
             temperature = st.slider(
-                "Temperature (°C)",
+                T["temperature"],
                 min_value=8.0,
                 max_value=44.0,
                 value=20.9,
@@ -214,7 +230,7 @@ if page == "🏠 Make Prediction":
             st.caption(f"Selected: **{temperature}°C**")
             
             humidity = st.slider(
-                "Humidity (%)",
+                T["humidity"],
                 min_value=14.0,
                 max_value=100.0,
                 value=82.0,
@@ -224,9 +240,9 @@ if page == "🏠 Make Prediction":
             st.caption(f"Selected: **{humidity}%**")
         
         with col3:
-            st.markdown("#### 💧 Soil & Water")
+            st.markdown(f"#### {T['soil_water']}")
             ph = st.slider(
-                "pH Level",
+                T["ph"],
                 min_value=3.5,
                 max_value=10.0,
                 value=6.5,
@@ -236,7 +252,7 @@ if page == "🏠 Make Prediction":
             st.caption(f"Selected: **{ph}**")
             
             rainfall = st.slider(
-                "Rainfall (mm)",
+                T["rainfall"],
                 min_value=20.0,
                 max_value=300.0,
                 value=202.9,
@@ -248,7 +264,7 @@ if page == "🏠 Make Prediction":
         st.markdown("---")
         
         # Preset buttons
-        st.markdown("#### 📋 Quick Presets")
+        st.markdown(f"#### {T['quick_presets']}")
         preset_col1, preset_col2, preset_col3, preset_col4 = st.columns(4)
         
         with preset_col1:
@@ -333,21 +349,21 @@ if page == "🏠 Make Prediction":
                 )
             
             with col3:
-                st.subheader("Soil & Water")
+                st.subheader(T["soil_water"])
                 ph_manual = st.number_input(
-                    "pH Level",
+                    T["ph"],
                     min_value=3.5, max_value=10.0, value=6.5, step=0.1,
                     help="Soil pH level (3.5-10.0)"
                 )
                 rainfall_manual = st.number_input(
-                    "Rainfall (mm)",
+                    T["rainfall"],
                     min_value=20.0, max_value=300.0, value=202.93, step=0.1,
                     help="Annual rainfall in millimeters (20-300mm)"
                 )
             
             st.markdown("---")
             submit_button_manual = st.form_submit_button(
-                "🚀 Get Crop Recommendation",
+                T["get_recommendation"],
                 use_container_width=True
             )
             
@@ -383,24 +399,24 @@ if page == "🏠 Make Prediction":
                 
                 # Display result with animation
                 # Display result with professional notification
-                st.toast("✅ Analysis Complete: Recommendation Ready!", icon="🌾")
+                # Display result with professional notification
+                st.toast(T["analysis_complete"], icon="🌾")
                 
                 st.markdown(f"""
                 <div class="prediction-card">
-                    <h2>✅ Recommendation Ready</h2>
+                    <h2>✅ {T['analysis_complete']}</h2>
                     <div class="prediction-result">🌾 {crop}</div>
-                    <p>Based on your soil and climate conditions, <strong>{crop.upper()}</strong> is the best crop to cultivate.</p>
                 </div>
                 """, unsafe_allow_html=True)
 
                 st.markdown("---")
-                st.header("🛡️ Trust & Explainability Dashboard")
+                st.header(T["trust_dashboard"])
                 st.caption("This dashboard provides transparency into why the AI made this choice and how reliable it is.")
 
                 # Display Confidence
                 if 'confidence' in result:
                     confidence_pct = result['confidence'] * 100
-                    st.markdown(f"#### 🎯 Prediction Confidence: {confidence_pct:.1f}%")
+                    st.markdown(f"#### {T['confidence']}: {confidence_pct:.1f}%")
                     st.progress(result['confidence'])
                     
                     if confidence_pct > 80:
@@ -412,7 +428,7 @@ if page == "🏠 Make Prediction":
                 
                 # Display Why this Crop? reasons
                 if 'reasons' in result and result['reasons']:
-                    st.markdown("### 🔍 Why this crop?")
+                    st.markdown(f"### {T['why_crop']}")
                     cols = st.columns(len(result['reasons']))
                     for i, reason in enumerate(result['reasons']):
                         with cols[i]:
@@ -426,7 +442,7 @@ if page == "🏠 Make Prediction":
 
                 # Display Alternatives
                 if 'alternatives' in result and result['alternatives']:
-                    st.markdown("### 🔄 Alternative Options")
+                    st.markdown(f"### {T['alternatives']}")
                     st.info("If the primary recommendation isn't suitable, consider these top-ranking alternatives:")
                     
                     # Convert to DataFrame for a clean table look as shown in requirements
@@ -477,13 +493,13 @@ if page == "🏠 Make Prediction":
                     st.json(result if result else {"error": "No response"})
 
 # ==================== PAGE 2: HISTORY & ANALYTICS ====================
-elif page == "📊 History & Analytics":
+elif page == T["page_history"]:
     if not st.session_state.token:
-        st.warning("🔒 Authentication Required")
-        st.info("Please login to view your prediction history and analytics.")
+        st.warning(T["auth_required"])
+        st.info(T["auth_info"])
         st.stop()
         
-    st.header("Prediction History & Statistics")
+    st.header(T["history_title"])
     
     # Fetch data
     stats_data = get_stats(API_BASE_URL, st.session_state.token)
@@ -500,7 +516,7 @@ elif page == "📊 History & Analytics":
         with col1:
             st.markdown(f"""
             <div class="metric-card">
-                <h3 style="color: #22808d;">Total Predictions</h3>
+                <h3 style="color: #22808d;">{T['total_preds']}</h3>
                 <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{total_preds}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -509,7 +525,7 @@ elif page == "📊 History & Analytics":
             most_common = max(crop_dist, key=crop_dist.get) if crop_dist else "N/A"
             st.markdown(f"""
             <div class="metric-card">
-                <h3 style="color: #22808d;">Most Predicted Crop</h3>
+                <h3 style="color: #22808d;">{T['most_common']}</h3>
                 <p style="font-size: 2rem; font-weight: bold; margin: 0;">{most_common.upper()}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -518,7 +534,7 @@ elif page == "📊 History & Analytics":
             unique_crops = len(crop_dist)
             st.markdown(f"""
             <div class="metric-card">
-                <h3 style="color: #22808d;">Unique Crops</h3>
+                <h3 style="color: #22808d;">{T['unique_crops']}</h3>
                 <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{unique_crops}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -527,7 +543,7 @@ elif page == "📊 History & Analytics":
         
         # Crop distribution chart
         if crop_dist:
-            st.subheader("📈 Crop Distribution")
+            st.subheader(T["crop_dist"])
             df_crops = pd.DataFrame(
                 list(crop_dist.items()),
                 columns=['Crop', 'Count']
@@ -555,7 +571,7 @@ elif page == "📊 History & Analytics":
     
     # Access history data correctly
     if history_data and history_data.get('status') == 'success':
-        st.subheader("📜 Recent Predictions")
+        st.subheader(T["recent_preds"])
         predictions = history_data.get('data', [])
         
         if predictions:
@@ -582,7 +598,7 @@ elif page == "📊 History & Analytics":
             # Download button
             csv = df_history.to_csv(index=False)
             st.download_button(
-                label="📥 Download History as CSV",
+                label=T["download_csv"],
                 data=csv,
                 file_name=f"crop_predictions_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
@@ -597,8 +613,8 @@ elif page == "📊 History & Analytics":
                 st.json(history_data)
 
 # ==================== PAGE 3: MODEL COMPARISON ====================
-elif page == "🔬 Model Comparison":
-    st.header("Model Performance Comparison")
+elif page == T["page_comparison"]:
+    st.header(T["page_comparison"])
     st.markdown("""
     This page shows a systematic comparison of different machine learning algorithms 
     evaluated on the crop recommendation dataset using 5-fold cross-validation.
@@ -741,8 +757,8 @@ elif page == "🔬 Model Comparison":
         st.info("Ensure the backend server is running and the dataset is available for training.")
 
 # ==================== PAGE 4: ABOUT ====================
-elif page == "ℹ️ About":
-    st.header("About This System")
+elif page == T["page_about"]:
+    st.header(T["page_about"])
     
     st.markdown("""
     ### 🌾 Smart Crop Recommendation System
@@ -816,8 +832,8 @@ elif page == "ℹ️ About":
 # ==================== FOOTER ====================
 st.markdown("---")
 st.markdown(
-    "<div style='text-align: center; color: #666; padding: 1rem;'>"
-    "Built with ❤️ using Streamlit & Flask | © 2026 Crop Recommendation System"
+    f"<div style='text-align: center; color: #666; padding: 1rem;'>"
+    f"Built with ❤️ using Streamlit & Flask | © 2026 {T['title']}"
     "</div>",
     unsafe_allow_html=True
 )
