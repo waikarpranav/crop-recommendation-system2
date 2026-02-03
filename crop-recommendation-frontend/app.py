@@ -116,7 +116,11 @@ with st.sidebar:
                         st.success("✅ Registered!")
                         st.rerun()
                     else:
-                        st.error(res.get('message', 'Registration failed'))
+                        error_msg = res.get('message')
+                        if not error_msg and 'details' in res:
+                            # Extract pydantic errors
+                            error_msg = ", ".join([f"{e.get('msg')} ({e.get('loc')[-1]})" for e in res['details']])
+                        st.error(error_msg or res.get('error') or 'Registration failed')
     else:
         st.title(f"👋 Welcome, {st.session_state.user['username']}")
         if st.button("🚪 Logout", use_container_width=True):
